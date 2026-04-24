@@ -29,18 +29,26 @@ export default function App() {
   };
 
   const fetchAllData = async () => {
-    const tfs: Timeframe[] = ['1m', '5m', '15m', '30m', '1h'];
-    const results = await Promise.all(tfs.map(tf => fetchKlines(symbol, tf)));
-    const newData: Record<Timeframe, Kline[]> = {
-      '1m': results[0],
-      '5m': results[1],
-      '15m': results[2],
-      '30m': results[3],
-      '1h': results[4]
-    };
-    setAllTimeframesData(newData);
-    // Also update the current active view data
-    setData(newData[timeframe]);
+    setIsLoading(true);
+    try {
+      const tfs: Timeframe[] = ['1m', '5m', '15m', '30m', '1h'];
+      const results = await Promise.all(tfs.map(tf => fetchKlines(symbol, tf)));
+      const newData: Record<Timeframe, Kline[]> = {
+        '1m': results[0] || [],
+        '5m': results[1] || [],
+        '15m': results[2] || [],
+        '30m': results[3] || [],
+        '1h': results[4] || []
+      };
+      setAllTimeframesData(newData);
+      if (mode === 'blocks') {
+        setData(newData[timeframe] || []);
+      }
+    } catch (error) {
+      console.error('Error fetching all timeframes:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {

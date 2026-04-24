@@ -1,7 +1,5 @@
 import { Kline } from '../lib/indicators';
 
-const BINANCE_BASE = 'https://api.binance.com/api/v3';
-
 export type Timeframe = '1m' | '5m' | '15m' | '30m' | '1h';
 
 export async function fetchKlines(symbol: string, interval: Timeframe, limit = 200): Promise<Kline[]> {
