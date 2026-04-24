@@ -14,7 +14,12 @@ export async function fetchKlines(symbol: string, interval: Timeframe, limit = 2
 
   for (const url of endpoints) {
     try {
-      const response = await fetch(url);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
       if (!response.ok) continue;
       
       const data = await response.json();

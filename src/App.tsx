@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { RefreshCw, BarChart2, Activity } from 'lucide-react';
 import { motion } from 'motion/react';
 import CandleChart from './components/CandleChart';
 import KDJBlockView from './components/KDJBlockView';
+import ErrorBoundary from './components/ErrorBoundary';
 import { fetchKlines, Timeframe } from './services/binance';
 import { Kline, calculateKDJ } from './lib/indicators';
 
@@ -21,26 +22,35 @@ export default function App() {
   
   const symbol = 'BTCUSDT';
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
-    const klines = await fetchKlines(symbol, timeframe);
-    setData(klines);
-    setIsLoading(false);
-  };
+    try {
+      const klines = await fetchKlines(symbol, timeframe);
+      setData(klines);
+    } catch (error) {
+      console.error('Error fetching klines:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [symbol, timeframe]);
 
-  const fetchAllData = async () => {
+  const fetchAllData = useCallback(async () => {
     setIsLoading(true);
     try {
       const tfs: Timeframe[] = ['1m', '5m', '15m', '30m', '1h'];
       const results = await Promise.all(tfs.map(tf => fetchKlines(symbol, tf)));
-      const newData: Record<Timeframe, Kline[]> = {
+      
+      const newData = {
         '1m': results[0] || [],
         '5m': results[1] || [],
         '15m': results[2] || [],
         '30m': results[3] || [],
         '1h': results[4] || []
-      };
+      } as Record<Timeframe, Kline[]>;
+
       setAllTimeframesData(newData);
+      
+      // Specifically update current data if in blocks mode to ensure chart/indicator logic has latest
       if (mode === 'blocks') {
         setData(newData[timeframe] || []);
       }
@@ -49,19 +59,17 @@ export default function App() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [symbol, timeframe, mode]);
 
   useEffect(() => {
-    if (mode === 'blocks') {
-      fetchAllData();
-      const interval = setInterval(fetchAllData, 10000);
-      return () => clearInterval(interval);
-    } else {
-      fetchData();
-      const interval = setInterval(fetchData, 10000);
-      return () => clearInterval(interval);
-    }
-  }, [timeframe, mode]);
+    const isBlocks = mode === 'blocks';
+    const fetchFunc = isBlocks ? fetchAllData : fetchData;
+    
+    fetchFunc();
+    const interval = setInterval(fetchFunc, 10000);
+    
+    return () => clearInterval(interval);
+  }, [fetchAllData, fetchData, mode]);
 
   const currentPrice = data.length > 0 ? data[data.length - 1].close : 0;
   const priceChange = data.length > 1 ? currentPrice - data[data.length - 2].close : 0;
@@ -162,27 +170,29 @@ export default function App() {
       </header>
 
       <main className="flex-1 flex overflow-hidden">
-        <div className="flex-1 flex flex-col bg-[#0a0a0a] relative">
-          {mode === 'blocks' ? (
-            <KDJBlockView data={allTimeframesData} isLoading={isLoading} />
-          ) : (
-            <div className="p-4 flex-1 flex flex-col">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                key={mode} // Trigger animation on mode change
-                className="flex-1 min-h-0"
-              >
-                <CandleChart 
-                  data={data} 
-                  isLoading={isLoading} 
-                  mode={mode}
-                  kdjData={kdjData}
-                />
-              </motion.div>
-            </div>
-          )}
-        </div>
+        <ErrorBoundary>
+          <div className="flex-1 flex flex-col bg-[#0a0a0a] relative">
+            {mode === 'blocks' ? (
+              <KDJBlockView data={allTimeframesData} isLoading={isLoading} />
+            ) : (
+              <div className="p-4 flex-1 flex flex-col">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  key={mode} // Trigger animation on mode change
+                  className="flex-1 min-h-0"
+                >
+                  <CandleChart 
+                    data={data} 
+                    isLoading={isLoading} 
+                    mode={mode}
+                    kdjData={kdjData}
+                  />
+                </motion.div>
+              </div>
+            )}
+          </div>
+        </ErrorBoundary>
       </main>
 
       <footer className="h-8 border-t border-[#222] bg-[#111] flex items-center justify-between px-4 text-[10px] text-gray-500 font-medium tracking-tight">
