@@ -10,7 +10,7 @@ export default function App() {
   const [data, setData] = useState<Kline[]>([]);
   const [timeframe, setTimeframe] = useState<Timeframe>('1m');
   const [isLoading, setIsLoading] = useState(true);
-  const [mode, setMode] = useState<'kline' | 'kdj' | 'blocks'>('kline');
+  const [mode, setMode] = useState<'kline' | 'kdj' | 'blocks'>('blocks');
   const [allTimeframesData, setAllTimeframesData] = useState<Record<Timeframe, Kline[]>>({
     '1m': [],
     '5m': [],

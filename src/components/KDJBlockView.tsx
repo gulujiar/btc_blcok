@@ -84,18 +84,20 @@ export default function KDJBlockView({ data, isLoading }: KDJBlockViewProps) {
                <div className="text-[10px] font-bold uppercase tracking-widest">API Error</div>
             </div>
           ) : (
-            <div className={`flex flex-col items-center ${res.textColor} transition-opacity duration-300`}>
-              <div className="text-6xl font-black mb-2 drop-shadow-sm tracking-tight">{res.tf}</div>
-              <div className="text-xs font-bold uppercase tracking-[0.2em] mb-10 opacity-70">{res.label}</div>
+            <div className={`flex flex-row lg:flex-col items-center justify-between lg:justify-center w-full px-8 lg:px-0 ${res.textColor} transition-opacity duration-300`}>
+              <div className="flex flex-col lg:items-center">
+                <div className="text-3xl lg:text-6xl font-black lg:mb-2 drop-shadow-sm tracking-tight">{res.tf}</div>
+                <div className="text-[10px] lg:text-xs font-bold uppercase tracking-[0.2em] opacity-70">{res.label}</div>
+              </div>
               
-              <div className="flex gap-4 sm:gap-8 font-mono text-xl font-black bg-black/15 px-6 sm:px-10 py-5 rounded-2xl backdrop-blur-md border border-black/5 shadow-xl">
-                <div className="flex flex-col items-center min-w-[60px]">
-                  <span className="text-[10px] uppercase opacity-40 mb-1 font-sans">K-Data</span>
+              <div className="flex gap-3 lg:gap-8 font-mono text-base lg:text-xl font-black bg-black/15 px-4 lg:px-10 py-2.5 lg:py-5 rounded-lg lg:rounded-2xl backdrop-blur-md border border-black/5 shadow-xl">
+                <div className="flex flex-col items-center min-w-[40px] lg:min-w-[60px]">
+                  <span className="text-[8px] lg:text-[10px] uppercase opacity-40 mb-0.5 lg:mb-1 font-sans">K</span>
                   <span className="tabular-nums">{res.k}</span>
                 </div>
-                <div className="w-px h-10 bg-black/10 self-center"></div>
-                <div className="flex flex-col items-center min-w-[60px]">
-                  <span className="text-[10px] uppercase opacity-40 mb-1 font-sans">D-Data</span>
+                <div className="w-px h-6 lg:h-10 bg-black/10 self-center"></div>
+                <div className="flex flex-col items-center min-w-[40px] lg:min-w-[60px]">
+                  <span className="text-[8px] lg:text-[10px] uppercase opacity-40 mb-0.5 lg:mb-1 font-sans">D</span>
                   <span className="tabular-nums">{res.d}</span>
                 </div>
               </div>
