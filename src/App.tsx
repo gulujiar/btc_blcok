@@ -54,11 +54,11 @@ export default function App() {
   useEffect(() => {
     if (mode === 'blocks') {
       fetchAllData();
-      const interval = setInterval(fetchAllData, 30000);
+      const interval = setInterval(fetchAllData, 10000);
       return () => clearInterval(interval);
     } else {
       fetchData();
-      const interval = setInterval(fetchData, 30000);
+      const interval = setInterval(fetchData, 10000);
       return () => clearInterval(interval);
     }
   }, [timeframe, mode]);
@@ -80,19 +80,19 @@ export default function App() {
             <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center font-bold text-black shadow-lg shadow-orange-500/20">₿</div>
             <div className="flex flex-col">
               <span className="text-lg font-semibold tracking-tight uppercase leading-none">{symbol.slice(0, 3)} / {symbol.slice(3)}</span>
-              <span className="text-[10px] text-zinc-500 font-mono mt-1">LIVE DATA</span>
+              <span className="text-[10px] text-zinc-500 font-mono mt-1">实时数据</span>
             </div>
           </div>
 
           <div className="hidden md:flex items-center gap-6">
             <div className="flex flex-col">
-              <span className="text-[10px] text-gray-500 uppercase font-medium">Last Price</span>
+              <span className="text-[10px] text-gray-500 uppercase font-medium">最新价格</span>
               <span className={`text-sm font-mono ${isPositive ? 'text-[#00ff9d]' : 'text-[#ff4d4d]'}`}>
                 {currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </span>
             </div>
             <div className="flex flex-col">
-              <span className="text-[10px] text-gray-500 uppercase font-medium">Change</span>
+              <span className="text-[10px] text-gray-500 uppercase font-medium">涨跌</span>
               <span className={`text-sm font-mono ${isPositive ? 'text-[#00ff9d]' : 'text-[#ff4d4d]'}`}>
                 {isPositive ? '+' : ''}{priceChange.toFixed(2)}
               </span>
@@ -132,7 +132,7 @@ export default function App() {
               }`}
             >
               <Activity className="w-4 h-4" />
-              <span className="text-[10px] font-bold uppercase">Chart</span>
+              <span className="text-[10px] font-bold uppercase">图表</span>
             </button>
             <button
               onClick={() => setMode('kdj')}
@@ -155,7 +155,7 @@ export default function App() {
                 <div className="w-1.5 h-1.5 bg-current rounded-[1px]"></div>
                 <div className="w-1.5 h-1.5 bg-current rounded-[1px]"></div>
               </div>
-              <span className="text-[10px] font-bold uppercase">Blocks</span>
+              <span className="text-[10px] font-bold uppercase">色块</span>
             </button>
           </div>
         </div>
@@ -189,9 +189,9 @@ export default function App() {
         <div className="flex items-center space-x-4">
           <span className="flex items-center space-x-1">
             <span className="w-1.5 h-1.5 rounded-full bg-[#00ff9d]"></span>
-            <span>Stable Connection</span>
+            <span>连接稳定</span>
           </span>
-          <span>Binance API: Active</span>
+          <span>币安 API: 已激活</span>
         </div>
         <div className="flex space-x-4 uppercase">
            <span>UTC {new Date().getHours() >= 12 ? '+' : '-'}{(new Date().getTimezoneOffset() / 60) * -1}:00</span>

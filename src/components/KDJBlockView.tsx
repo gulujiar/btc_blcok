@@ -36,15 +36,15 @@ export default function KDJBlockView({ data, isLoading }: KDJBlockViewProps) {
 
       if (diff < threshold) {
         color = 'bg-yellow-400';
-        label = 'Convergence';
+        label = '趋势收敛';
         textColor = 'text-black';
       } else if (lastK > lastD) {
         color = 'bg-[#00ff9d]';
-        label = 'Golden Cross';
+        label = '指标金叉';
         textColor = 'text-black';
       } else {
         color = 'bg-[#ff4d4d]';
-        label = 'Dead Cross';
+        label = '指标死叉';
         textColor = 'text-white';
       }
 
@@ -76,12 +76,12 @@ export default function KDJBlockView({ data, isLoading }: KDJBlockViewProps) {
              <div className="flex flex-col items-center">
                <div className="w-12 h-12 border-4 border-[#00ff9d]/20 border-t-[#00ff9d] rounded-full animate-spin mb-4"></div>
                <div className="text-2xl font-bold text-white mb-1">{res.tf}</div>
-               <div className="text-[10px] text-zinc-500 uppercase tracking-widest animate-pulse">Fetching Data</div>
+               <div className="text-[10px] text-zinc-500 uppercase tracking-widest animate-pulse">正在获取数据</div>
              </div>
           ) : res.status === 'error' ? (
             <div className="flex flex-col items-center text-rose-400">
                <div className="text-4xl font-black mb-2 opacity-20">{res.tf}</div>
-               <div className="text-[10px] font-bold uppercase tracking-widest">API Error</div>
+               <div className="text-[10px] font-bold uppercase tracking-widest">接口连接错误</div>
             </div>
           ) : (
             <div className={`flex flex-row lg:flex-col items-center justify-between lg:justify-center w-full px-6 lg:px-0 ${res.textColor} transition-opacity duration-300`}>
@@ -105,7 +105,7 @@ export default function KDJBlockView({ data, isLoading }: KDJBlockViewProps) {
           )}
           
           <div className={`absolute top-4 left-6 text-[10px] font-black uppercase tracking-[0.25em] opacity-20 ${res.textColor || 'text-white'}`}>
-            KDJ Monitoring
+            KDJ 实时监控
           </div>
         </motion.div>
       ))}

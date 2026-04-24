@@ -156,7 +156,7 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-4">
             <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-zinc-400 font-medium">Loading Bitcoin Data...</span>
+            <span className="text-zinc-400 font-medium">正在加载比特币数据...</span>
           </div>
         </div>
       )}
