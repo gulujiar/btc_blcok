@@ -73,7 +73,7 @@ export default function App() {
   }, [data]);
 
   return (
-    <div className="min-h-screen bg-[#0d0d0d] text-[#e0e0e0] font-sans selection:bg-emerald-500/30 flex flex-col">
+    <div className="h-screen bg-[#0d0d0d] text-[#e0e0e0] font-sans selection:bg-emerald-500/30 flex flex-col overflow-hidden">
       <header className="h-16 border-b border-[#222] bg-[#111] sticky top-0 z-20 flex items-center justify-between px-6">
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-3">

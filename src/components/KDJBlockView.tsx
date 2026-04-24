@@ -84,20 +84,20 @@ export default function KDJBlockView({ data, isLoading }: KDJBlockViewProps) {
                <div className="text-[10px] font-bold uppercase tracking-widest">API Error</div>
             </div>
           ) : (
-            <div className={`flex flex-row lg:flex-col items-center justify-between lg:justify-center w-full px-8 lg:px-0 ${res.textColor} transition-opacity duration-300`}>
+            <div className={`flex flex-row lg:flex-col items-center justify-between lg:justify-center w-full px-6 lg:px-0 ${res.textColor} transition-opacity duration-300`}>
               <div className="flex flex-col lg:items-center">
-                <div className="text-3xl lg:text-6xl font-black lg:mb-2 drop-shadow-sm tracking-tight">{res.tf}</div>
-                <div className="text-[10px] lg:text-xs font-bold uppercase tracking-[0.2em] opacity-70">{res.label}</div>
+                <div className="text-2xl lg:text-6xl font-black lg:mb-2 drop-shadow-sm tracking-tight leading-none">{res.tf}</div>
+                <div className="text-[9px] lg:text-xs font-bold uppercase tracking-[0.1em] opacity-70 mt-1">{res.label}</div>
               </div>
               
-              <div className="flex gap-3 lg:gap-8 font-mono text-base lg:text-xl font-black bg-black/15 px-4 lg:px-10 py-2.5 lg:py-5 rounded-lg lg:rounded-2xl backdrop-blur-md border border-black/5 shadow-xl">
-                <div className="flex flex-col items-center min-w-[40px] lg:min-w-[60px]">
-                  <span className="text-[8px] lg:text-[10px] uppercase opacity-40 mb-0.5 lg:mb-1 font-sans">K</span>
+              <div className="flex gap-2 lg:gap-8 font-mono text-sm lg:text-xl font-black bg-black/15 px-3 lg:px-10 py-2 lg:py-5 rounded-lg lg:rounded-2xl backdrop-blur-md border border-black/5 shadow-xl">
+                <div className="flex flex-col items-center min-w-[32px] lg:min-w-[60px]">
+                  <span className="text-[7px] lg:text-[10px] uppercase opacity-40 mb-0.5 lg:mb-1 font-sans">K</span>
                   <span className="tabular-nums">{res.k}</span>
                 </div>
-                <div className="w-px h-6 lg:h-10 bg-black/10 self-center"></div>
-                <div className="flex flex-col items-center min-w-[40px] lg:min-w-[60px]">
-                  <span className="text-[8px] lg:text-[10px] uppercase opacity-40 mb-0.5 lg:mb-1 font-sans">D</span>
+                <div className="w-px h-5 lg:h-10 bg-black/10 self-center"></div>
+                <div className="flex flex-col items-center min-w-[32px] lg:min-w-[60px]">
+                  <span className="text-[7px] lg:text-[10px] uppercase opacity-40 mb-0.5 lg:mb-1 font-sans">D</span>
                   <span className="tabular-nums">{res.d}</span>
                 </div>
               </div>
