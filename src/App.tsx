@@ -198,10 +198,10 @@ export default function App() {
       <footer className="h-8 border-t border-[#222] bg-[#111] flex items-center justify-between px-4 text-[10px] text-gray-500 font-medium tracking-tight">
         <div className="flex items-center space-x-4">
           <span className="flex items-center space-x-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#00ff9d]"></span>
-            <span>连接稳定</span>
+            <span className={`w-1.5 h-1.5 rounded-full ${data.length > 0 ? 'bg-[#00ff9d]' : 'bg-orange-500 animate-pulse'}`}></span>
+            <span>{data.length > 0 ? '连接稳定' : '正在连接'}</span>
           </span>
-          <span>币安 API: 已激活</span>
+          <span>实时行情: 已激活</span>
         </div>
         <div className="flex space-x-4 uppercase">
            <span>UTC {new Date().getHours() >= 12 ? '+' : '-'}{(new Date().getTimezoneOffset() / 60) * -1}:00</span>
