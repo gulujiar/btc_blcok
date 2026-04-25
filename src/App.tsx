@@ -21,136 +21,70 @@ export default function App() {
     '1h': []
   });
   
-  const [isPipActive, setIsPipActive] = useState(false);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const requestRef = useRef<number | null>(null);
-
-  // Function to draw the blocks to canvas for Video PiP
-  const drawToCanvas = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const width = 400;
-    const height = 600;
-    canvas.width = width;
-    canvas.height = height;
-
-    const tfs: Timeframe[] = ['1m', '5m', '15m', '30m', '1h'];
-    const blockHeight = height / tfs.length;
-
-    tfs.forEach((tf, i) => {
-      const klines = allTimeframesData[tf];
-      if (!klines || klines.length < 3) {
-        ctx.fillStyle = '#111';
-        ctx.fillRect(0, i * blockHeight, width, blockHeight);
-        return;
-      }
-
-      const kdj = calculateKDJ(klines);
-      const last = kdj[kdj.length - 1];
-      const lastK = parseFloat(last.k.toFixed(2));
-      const lastD = parseFloat(last.d.toFixed(2));
-      const diff = Math.abs(lastK - lastD);
-      const threshold = 1.5;
-
-      let color = '#111';
-      let label = '';
-      let textColor = '#fff';
-
-      if (diff < threshold) {
-        color = '#facc15'; // yellow-400
-        label = '趋势收敛';
-        textColor = '#000';
-      } else if (lastK > lastD) {
-        color = '#00ff9d'; // emerald
-        label = '指标金叉';
-        textColor = '#000';
-      } else {
-        color = '#ff4d4d'; // rose
-        label = '指标死叉';
-        textColor = '#fff';
-      }
-
-      ctx.fillStyle = color;
-      ctx.fillRect(0, i * blockHeight, width, blockHeight);
-
-      // Draw text with responsiveness built into the draw call (mocking CSS media queries)
-      // Base on typical PiP size, though Video PiP scales the image automatically.
-      ctx.fillStyle = textColor;
-      ctx.textAlign = 'center';
-      
-      // We draw at a high res and let the video PiP scale down
-      ctx.font = 'bold 80px Inter, sans-serif';
-      ctx.fillText(tf, width / 2, i * blockHeight + blockHeight / 2);
-      
-      ctx.font = 'bold 20px Inter, sans-serif';
-      ctx.globalAlpha = 0.7;
-      ctx.fillText(label, width / 2, i * blockHeight + blockHeight / 2 + 50);
-      ctx.globalAlpha = 1.0;
-
-      // Data pill
-      ctx.font = 'bold 24px monospace';
-      ctx.fillText(`K: ${lastK}  D: ${lastD}`, width / 2, i * blockHeight + blockHeight - 30);
-    });
-
-    requestRef.current = requestAnimationFrame(drawToCanvas);
-  }, [allTimeframesData]);
+  const [pipWindow, setPipWindow] = useState<Window | null>(null);
+  const pipContainerRef = useRef<HTMLDivElement | null>(null);
 
   const togglePiP = useCallback(async () => {
-    if (isPipActive) {
-      if (document.pictureInPictureElement) {
-        await document.exitPictureInPicture();
-      }
+    if (pipWindow) {
+      pipWindow.close();
       return;
     }
 
     try {
+      // Check if we are in an iframe
       if (window.self !== window.top) {
         alert('悬浮窗功能受预览环境限制，请点击右上角的“在新标签页打开”图标，在独立页面中开启。');
         return;
       }
 
-      if (!canvasRef.current) {
-        const canvas = document.createElement('canvas');
-        canvasRef.current = canvas;
+      if (!('documentPictureInPicture' in window)) {
+        alert('您的浏览器不支持悬浮小窗功能。请尝试使用最新版的 Edge 或 Chrome (116+)。');
+        return;
       }
 
-      if (!videoRef.current) {
-        const video = document.createElement('video');
-        video.muted = true;
-        video.playsInline = true;
-        videoRef.current = video;
-      }
+      // @ts-ignore
+      const pip = await window.documentPictureInPicture.requestWindow({
+        width: 320,
+        height: 480,
+      });
 
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      
-      // Start drawing
-      drawToCanvas();
-
-      const stream = canvas.captureStream(10); // 10 FPS is enough for KDJ
-      video.srcObject = stream;
-      
-      await video.play();
-      await video.requestPictureInPicture();
-
-      video.addEventListener('leavepictureinpicture', () => {
-        setIsPipActive(false);
-        if (requestRef.current) {
-          cancelAnimationFrame(requestRef.current);
-          requestRef.current = null;
+      // Copy styles
+      [...document.styleSheets].forEach((styleSheet) => {
+        try {
+          const cssRules = [...styleSheet.cssRules]
+            .map((rule) => rule.cssText)
+            .join('');
+          const style = document.createElement('style');
+          style.textContent = cssRules;
+          pip.document.head.appendChild(style);
+        } catch (e) {
+          const link = document.createElement('link');
+          if (styleSheet.href) {
+            link.rel = 'stylesheet';
+            link.type = styleSheet.type;
+            link.href = styleSheet.href;
+            pip.document.head.appendChild(link);
+          }
         }
       });
 
-      setIsPipActive(true);
+      // Create container
+      const container = pip.document.createElement('div');
+      container.id = 'pip-root';
+      pip.document.body.appendChild(container);
+      pipContainerRef.current = container;
+
+      pip.addEventListener('pagehide', () => {
+        setPipWindow(null);
+        pipContainerRef.current = null;
+      });
+
+      setPipWindow(pip);
     } catch (error) {
       console.error('PiP failed:', error);
       alert('开启悬浮窗失败。如果是由于预览环境限制，请点击右上角“在新标签页打开”后再试。');
     }
-  }, [isPipActive, drawToCanvas]);
+  }, [pipWindow]);
 
   const symbol = 'BTCUSDT';
 
@@ -268,12 +202,12 @@ export default function App() {
           <button 
             onClick={togglePiP}
             className={`p-1.5 rounded-lg border transition-colors flex items-center gap-2 mr-2 ${
-              isPipActive ? 'border-emerald-500 bg-emerald-500/10 text-emerald-500' : 'border-[#333] hover:bg-[#1a1a1a] text-gray-500'
+              pipWindow ? 'border-emerald-500 bg-emerald-500/10 text-emerald-500' : 'border-[#333] hover:bg-[#1a1a1a] text-gray-500'
             }`}
-            title="开启画中画 (真·无边框)"
+            title="开启悬浮窗"
           >
-            <Activity className="w-4 h-4" />
-            <span className="text-[10px] font-bold hidden sm:inline">真·小窗监控</span>
+            <ExternalLink className="w-4 h-4" />
+            <span className="text-[10px] font-bold hidden sm:inline">悬浮小窗</span>
           </button>
 
           <div className="flex bg-[#1a1a1a] p-1 rounded-xl border border-[#333] shadow-inner">
@@ -317,7 +251,20 @@ export default function App() {
         <ErrorBoundary>
           <div className="flex-1 flex flex-col bg-[#0a0a0a] relative">
             {mode === 'blocks' ? (
-              <KDJBlockView data={allTimeframesData} isLoading={isLoading} />
+              pipWindow && pipContainerRef.current ? (
+                <div className="flex-1 flex items-center justify-center text-zinc-600 flex-col gap-4">
+                  <ExternalLink className="w-12 h-12 opacity-20" />
+                  <div className="text-sm font-medium">监控已转至悬浮窗显示</div>
+                  <button 
+                    onClick={() => pipWindow.close()}
+                    className="text-xs bg-zinc-800 px-4 py-2 rounded-lg hover:bg-zinc-700 transition-colors"
+                  >
+                    回收窗口
+                  </button>
+                </div>
+              ) : (
+                <KDJBlockView data={allTimeframesData} isLoading={isLoading} />
+              )
             ) : (
               <div className="p-4 flex-1 flex flex-col">
                 <motion.div
@@ -337,6 +284,13 @@ export default function App() {
             )}
           </div>
         </ErrorBoundary>
+
+        {pipWindow && pipContainerRef.current && createPortal(
+          <div className="h-screen w-screen bg-[#0d0d0d] overflow-hidden flex flex-col">
+            <KDJBlockView data={allTimeframesData} isLoading={isLoading} isPiP={true} />
+          </div>,
+          pipContainerRef.current
+        )}
       </main>
 
       <footer className="h-8 border-t border-[#222] bg-[#111] flex items-center justify-between px-4 text-[10px] text-gray-500 font-medium tracking-tight">
