@@ -62,7 +62,7 @@ export default function KDJBlockView({ data, isLoading, isPiP }: KDJBlockViewPro
   }, [data]);
 
   return (
-    <div className={`flex-1 grid h-full min-h-0 bg-[#0a0a0a] ${
+    <div className={`flex-1 grid h-full min-h-0 bg-[#0a0a0a] overflow-hidden ${
       isPiP 
         ? 'grid-cols-1 grid-rows-5' 
         : 'grid-cols-1 grid-rows-5 lg:grid-cols-5 lg:grid-rows-1'
@@ -70,48 +70,52 @@ export default function KDJBlockView({ data, isLoading, isPiP }: KDJBlockViewPro
       {results.map((res, i) => (
         <motion.div
           key={res.tf}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: i * 0.05 }}
-          className={`relative flex flex-col items-center justify-center border-b lg:border-b-0 lg:border-l border-white/5 first:border-0 transition-all duration-700 ${
+          initial={isPiP ? false : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: i * 0.05, duration: 0.3 }}
+          className={`relative flex flex-col items-center justify-center border-b lg:border-b-0 lg:border-l border-white/5 first:border-0 transition-all duration-500 overflow-hidden ${
             res.status === 'ready' ? res.color : 'bg-[#111]'
           }`}
         >
           {res.status === 'loading' ? (
              <div className="flex flex-col items-center">
-               <div className="w-12 h-12 border-4 border-[#00ff9d]/20 border-t-[#00ff9d] rounded-full animate-spin mb-4"></div>
-               <div className="text-2xl font-bold text-white mb-1">{res.tf}</div>
-               <div className="text-[10px] text-zinc-500 uppercase tracking-widest animate-pulse">正在获取数据</div>
+               <div className="w-8 h-8 lg:w-12 lg:h-12 border-2 lg:border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
              </div>
           ) : res.status === 'error' ? (
-            <div className="flex flex-col items-center text-rose-400">
-               <div className="text-4xl font-black mb-2 opacity-20">{res.tf}</div>
-               <div className="text-[10px] font-bold uppercase tracking-widest">接口连接错误</div>
-            </div>
+            <div className="text-xl lg:text-4xl font-black opacity-20">{res.tf}</div>
           ) : (
-            <div className={`flex flex-row lg:flex-col items-center justify-between lg:justify-center w-full px-6 lg:px-0 ${res.textColor} transition-opacity duration-300`}>
+            <div className={`flex flex-row lg:flex-col items-center justify-between lg:justify-center w-full px-4 lg:px-0 ${res.textColor} transition-all duration-300`}>
               <div className="flex flex-col lg:items-center">
-                <div className="text-2xl lg:text-6xl font-black lg:mb-2 drop-shadow-sm tracking-tight leading-none">{res.tf}</div>
-                <div className="text-[9px] lg:text-xs font-bold uppercase tracking-[0.1em] opacity-70 mt-1">{res.label}</div>
+                <div className="text-xl sm:text-2xl lg:text-6xl font-black lg:mb-2 drop-shadow-sm tracking-tight leading-none pip-hide-text">{res.tf}</div>
+                <div className="text-[8px] lg:text-xs font-bold uppercase tracking-[0.1em] opacity-70 mt-1 hidden sm:block">{res.label}</div>
               </div>
               
-              <div className="flex gap-2 lg:gap-8 font-mono text-sm lg:text-xl font-black bg-black/15 px-3 lg:px-10 py-2 lg:py-5 rounded-lg lg:rounded-2xl backdrop-blur-md border border-black/5 shadow-xl">
-                <div className="flex flex-col items-center min-w-[32px] lg:min-w-[60px]">
-                  <span className="text-[7px] lg:text-[10px] uppercase opacity-40 mb-0.5 lg:mb-1 font-sans">K</span>
+              <div className="flex gap-2 lg:gap-8 font-mono text-xs sm:text-sm lg:text-xl font-black bg-black/15 px-2 lg:px-10 py-1.5 lg:py-5 rounded-lg lg:rounded-2xl backdrop-blur-md border border-black/5 shadow-xl pip-hide-data">
+                <div className="flex flex-col items-center min-w-[28px] lg:min-w-[60px]">
+                  <span className="text-[6px] lg:text-[10px] uppercase opacity-40 mb-0.5 lg:mb-1 font-sans hidden sm:block">K</span>
                   <span className="tabular-nums">{res.k}</span>
                 </div>
-                <div className="w-px h-5 lg:h-10 bg-black/10 self-center"></div>
-                <div className="flex flex-col items-center min-w-[32px] lg:min-w-[60px]">
-                  <span className="text-[7px] lg:text-[10px] uppercase opacity-40 mb-0.5 lg:mb-1 font-sans">D</span>
+                <div className="w-px h-4 lg:h-10 bg-black/10 self-center"></div>
+                <div className="flex flex-col items-center min-w-[28px] lg:min-w-[60px]">
+                  <span className="text-[6px] lg:text-[10px] uppercase opacity-40 mb-0.5 lg:mb-1 font-sans hidden sm:block">D</span>
                   <span className="tabular-nums">{res.d}</span>
                 </div>
               </div>
             </div>
           )}
           
-          <div className={`absolute top-4 left-6 text-[10px] font-black uppercase tracking-[0.25em] opacity-20 ${res.textColor || 'text-white'}`}>
+          <div className={`absolute top-2 left-3 text-[8px] font-black uppercase tracking-[0.25em] opacity-10 pointer-events-none hidden lg:block`}>
             KDJ 实时监控
           </div>
+
+          <style dangerouslySetInnerHTML={{ __html: `
+            @media (max-height: 220px) or (max-width: 140px) {
+              .pip-hide-data { display: none !important; }
+            }
+            @media (max-height: 100px) or (max-width: 80px) {
+              .pip-hide-text { display: none !important; }
+            }
+          `}} />
         </motion.div>
       ))}
     </div>

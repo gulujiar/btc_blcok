@@ -31,12 +31,18 @@ export default function App() {
     }
 
     try {
-      if (!('documentPictureInPicture' in window)) {
-        alert('您的浏览器不支持悬浮小窗功能。请尝试使用最新版的 Edge 或 Chrome。');
+      // Check if we are in an iframe
+      if (window.self !== window.top) {
+        alert('悬浮窗功能受预览环境限制，请点击右上角的“在新标签页打开”图标，在独立页面中开启。');
         return;
       }
 
-      // @ts-ignore - documentPictureInPicture is recent
+      if (!('documentPictureInPicture' in window)) {
+        alert('您的浏览器不支持悬浮小窗功能。请尝试使用最新版的 Edge 或 Chrome (116+)。');
+        return;
+      }
+
+      // @ts-ignore
       const pip = await window.documentPictureInPicture.requestWindow({
         width: 320,
         height: 480,
