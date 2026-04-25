@@ -6,9 +6,10 @@ import { Timeframe } from '../services/binance';
 interface KDJBlockViewProps {
   data: Record<Timeframe, Kline[]>;
   isLoading: boolean;
+  isPiP?: boolean;
 }
 
-export default function KDJBlockView({ data, isLoading }: KDJBlockViewProps) {
+export default function KDJBlockView({ data, isLoading, isPiP }: KDJBlockViewProps) {
   const tfs: Timeframe[] = ['1m', '5m', '15m', '30m', '1h'];
 
   const results = useMemo(() => {
@@ -61,7 +62,11 @@ export default function KDJBlockView({ data, isLoading }: KDJBlockViewProps) {
   }, [data]);
 
   return (
-    <div className="flex-1 grid grid-cols-1 grid-rows-5 lg:grid-cols-5 lg:grid-rows-1 h-full min-h-0 bg-[#0a0a0a]">
+    <div className={`flex-1 grid h-full min-h-0 bg-[#0a0a0a] ${
+      isPiP 
+        ? 'grid-cols-1 grid-rows-5' 
+        : 'grid-cols-1 grid-rows-5 lg:grid-cols-5 lg:grid-rows-1'
+    }`}>
       {results.map((res, i) => (
         <motion.div
           key={res.tf}

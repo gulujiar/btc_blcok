@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { RefreshCw, BarChart2, Activity } from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { RefreshCw, BarChart2, Activity, ExternalLink } from 'lucide-react';
 import { motion } from 'motion/react';
 import CandleChart from './components/CandleChart';
 import KDJBlockView from './components/KDJBlockView';
@@ -20,6 +21,65 @@ export default function App() {
     '1h': []
   });
   
+  const [pipWindow, setPipWindow] = useState<Window | null>(null);
+  const pipContainerRef = useRef<HTMLDivElement | null>(null);
+
+  const togglePiP = useCallback(async () => {
+    if (pipWindow) {
+      pipWindow.close();
+      return;
+    }
+
+    try {
+      if (!('documentPictureInPicture' in window)) {
+        alert('您的浏览器不支持悬浮小窗功能。请尝试使用最新版的 Edge 或 Chrome。');
+        return;
+      }
+
+      // @ts-ignore - documentPictureInPicture is recent
+      const pip = await window.documentPictureInPicture.requestWindow({
+        width: 320,
+        height: 480,
+      });
+
+      // Copy styles
+      [...document.styleSheets].forEach((styleSheet) => {
+        try {
+          const cssRules = [...styleSheet.cssRules]
+            .map((rule) => rule.cssText)
+            .join('');
+          const style = document.createElement('style');
+          style.textContent = cssRules;
+          pip.document.head.appendChild(style);
+        } catch (e) {
+          const link = document.createElement('link');
+          if (styleSheet.href) {
+            link.rel = 'stylesheet';
+            link.type = styleSheet.type;
+            link.href = styleSheet.href;
+            pip.document.head.appendChild(link);
+          }
+        }
+      });
+
+      // Create container
+      const container = pip.document.createElement('div');
+      container.id = 'pip-root';
+      pip.document.body.appendChild(container);
+      pipContainerRef.current = container;
+
+      pip.addEventListener('pagehide', () => {
+        setPipWindow(null);
+        pipContainerRef.current = null;
+      });
+
+      setPipWindow(pip);
+    } catch (error) {
+      console.error('PiP failed:', error);
+      alert('开启悬浮窗失败。如果是由于预览环境限制，请点击右上角“在新标签页打开”后再试。');
+    }
+  }, [pipWindow]);
+
   const symbol = 'BTCUSDT';
 
   const fetchData = useCallback(async () => {
@@ -128,8 +188,20 @@ export default function App() {
           <button 
             onClick={fetchData}
             className="p-1.5 rounded-lg border border-[#333] hover:bg-[#1a1a1a] transition-colors text-gray-500 mr-2"
+            title="刷新"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
+
+          <button 
+            onClick={togglePiP}
+            className={`p-1.5 rounded-lg border transition-colors flex items-center gap-2 mr-2 ${
+              pipWindow ? 'border-emerald-500 bg-emerald-500/10 text-emerald-500' : 'border-[#333] hover:bg-[#1a1a1a] text-gray-500'
+            }`}
+            title="开启悬浮窗"
+          >
+            <ExternalLink className="w-4 h-4" />
+            <span className="text-[10px] font-bold hidden sm:inline">悬浮小窗</span>
           </button>
 
           <div className="flex bg-[#1a1a1a] p-1 rounded-xl border border-[#333] shadow-inner">
@@ -173,7 +245,20 @@ export default function App() {
         <ErrorBoundary>
           <div className="flex-1 flex flex-col bg-[#0a0a0a] relative">
             {mode === 'blocks' ? (
-              <KDJBlockView data={allTimeframesData} isLoading={isLoading} />
+              pipWindow && pipContainerRef.current ? (
+                <div className="flex-1 flex items-center justify-center text-zinc-600 flex-col gap-4">
+                  <ExternalLink className="w-12 h-12 opacity-20" />
+                  <div className="text-sm font-medium">监控已转至悬浮窗显示</div>
+                  <button 
+                    onClick={() => pipWindow.close()}
+                    className="text-xs bg-zinc-800 px-4 py-2 rounded-lg hover:bg-zinc-700 transition-colors"
+                  >
+                    回收窗口
+                  </button>
+                </div>
+              ) : (
+                <KDJBlockView data={allTimeframesData} isLoading={isLoading} />
+              )
             ) : (
               <div className="p-4 flex-1 flex flex-col">
                 <motion.div
@@ -193,6 +278,13 @@ export default function App() {
             )}
           </div>
         </ErrorBoundary>
+
+        {pipWindow && pipContainerRef.current && createPortal(
+          <div className="h-screen w-screen bg-[#0d0d0d] overflow-hidden flex flex-col">
+            <KDJBlockView data={allTimeframesData} isLoading={isLoading} isPiP={true} />
+          </div>,
+          pipContainerRef.current
+        )}
       </main>
 
       <footer className="h-8 border-t border-[#222] bg-[#111] flex items-center justify-between px-4 text-[10px] text-gray-500 font-medium tracking-tight">
