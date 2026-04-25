@@ -84,7 +84,7 @@ export default function KDJBlockView({ data, isLoading, isPiP }: KDJBlockViewPro
           ) : res.status === 'error' ? (
             <div className="text-xl lg:text-4xl font-black opacity-20">{res.tf}</div>
           ) : (
-            <div className={`flex flex-row lg:flex-col items-center justify-between lg:justify-center w-full px-4 lg:px-0 ${res.textColor} transition-all duration-300`}>
+            <div className={`flex flex-row lg:flex-col items-center justify-between lg:justify-center w-full px-4 lg:px-0 ${res.textColor} transition-all duration-300 pip-compact-padding`}>
               <div className="flex flex-col lg:items-center">
                 <div className="text-xl sm:text-2xl lg:text-6xl font-black lg:mb-2 drop-shadow-sm tracking-tight leading-none pip-hide-text">{res.tf}</div>
                 <div className="text-[8px] lg:text-xs font-bold uppercase tracking-[0.1em] opacity-70 mt-1 hidden sm:block">{res.label}</div>
@@ -109,11 +109,14 @@ export default function KDJBlockView({ data, isLoading, isPiP }: KDJBlockViewPro
           </div>
 
           <style dangerouslySetInnerHTML={{ __html: `
-            @media (max-height: 220px) or (max-width: 140px) {
+            @media (max-height: 250px) or (max-width: 180px) {
               .pip-hide-data { display: none !important; }
             }
-            @media (max-height: 100px) or (max-width: 80px) {
+            @media (max-height: 120px) or (max-width: 80px) {
               .pip-hide-text { display: none !important; }
+            }
+            @media (max-width: 100px) {
+               .pip-compact-padding { padding-left: 2px !important; padding-right: 2px !important; justify-content: center !important; }
             }
           `}} />
         </motion.div>
