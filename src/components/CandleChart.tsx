@@ -88,17 +88,18 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
     jSeriesRef.current = jSeries;
 
     const handleResize = () => {
-      chart.applyOptions({
-        width: chartContainerRef.current?.clientWidth,
-        height: chartContainerRef.current?.clientHeight,
+      if (!chartContainerRef.current || !chartRef.current) return;
+      chartRef.current.applyOptions({
+        width: chartContainerRef.current.clientWidth,
+        height: chartContainerRef.current.clientHeight,
       });
     };
 
-    window.addEventListener('resize', handleResize);
-    handleResize();
+    const resizeObserver = new ResizeObserver(handleResize);
+    resizeObserver.observe(chartContainerRef.current);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
       chart.remove();
     };
   }, []);
@@ -140,18 +141,23 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
     if (data.length > 0 && !isLoading) {
       const timeScale = chartRef.current?.timeScale();
       if (timeScale) {
-        // If it's the first load or timeframe change, focus on the last 80 candles
-        // This makes 1m/5m much more readable
-        timeScale.setVisibleLogicalRange({
-          from: data.length - 80,
-          to: data.length + 5,
+        // Calculate appropriate bar count based on width
+        const width = chartContainerRef.current?.clientWidth || 800;
+        const visibleBars = Math.floor(width / 10); // Standard density: 1 bar every 10px
+        
+        // Use requestAnimationFrame to ensure the chart has finished internal layout
+        requestAnimationFrame(() => {
+          timeScale.setVisibleLogicalRange({
+            from: data.length - Math.min(data.length, visibleBars),
+            to: data.length + 2,
+          });
         });
       }
     }
   }, [data, isLoading, mode, kdjData]);
 
   return (
-    <div className="relative w-full h-[600px] rounded-xl overflow-hidden border border-[#2d333b] bg-[#0c0e14]">
+    <div className="relative w-full h-full rounded-xl overflow-hidden border border-[#2d333b] bg-[#0c0e14]">
       {isLoading && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-4">

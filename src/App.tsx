@@ -148,39 +148,39 @@ export default function App() {
 
   return (
     <div className="h-screen bg-[#0d0d0d] text-[#e0e0e0] font-sans selection:bg-emerald-500/30 flex flex-col overflow-hidden">
-      <header className="h-16 border-b border-[#222] bg-[#111] sticky top-0 z-20 flex items-center justify-between px-6">
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center font-bold text-black shadow-lg shadow-orange-500/20">₿</div>
+      <header className="min-h-[4rem] py-2 md:py-0 border-b border-[#222] bg-[#111] sticky top-0 z-20 flex flex-wrap items-center justify-between px-4 md:px-6 gap-y-3">
+        <div className="flex items-center gap-4 md:gap-8">
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center font-bold text-black shadow-lg shadow-orange-500/20 flex-shrink-0">₿</div>
             <div className="flex flex-col">
-              <span className="text-lg font-semibold tracking-tight uppercase leading-none">{symbol.slice(0, 3)} / {symbol.slice(3)}</span>
-              <span className="text-[10px] text-zinc-500 font-mono mt-1">实时数据</span>
+              <span className="text-sm md:text-lg font-semibold tracking-tight uppercase leading-none">{symbol.slice(0, 3)}/{symbol.slice(3)}</span>
+              <span className="text-[9px] text-zinc-500 font-mono mt-0.5">实时数据</span>
             </div>
           </div>
 
-          <div className="hidden md:flex items-center gap-6">
+          <div className="flex items-center gap-4 md:gap-6">
             <div className="flex flex-col">
-              <span className="text-[10px] text-gray-500 uppercase font-medium">最新价格</span>
-              <span className={`text-sm font-mono ${isPositive ? 'text-[#00ff9d]' : 'text-[#ff4d4d]'}`}>
-                {currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              <span className="text-[9px] text-gray-500 uppercase font-medium">价格</span>
+              <span className={`text-xs md:text-sm font-mono ${isPositive ? 'text-[#00ff9d]' : 'text-[#ff4d4d]'}`}>
+                {currentPrice.toLocaleString(undefined, { minimumFractionDigits: 1 })}
               </span>
             </div>
             <div className="flex flex-col">
-              <span className="text-[10px] text-gray-500 uppercase font-medium">涨跌</span>
-              <span className={`text-sm font-mono ${isPositive ? 'text-[#00ff9d]' : 'text-[#ff4d4d]'}`}>
-                {isPositive ? '+' : ''}{priceChange.toFixed(2)}
+              <span className="text-[9px] text-gray-500 uppercase font-medium">涨跌</span>
+              <span className={`text-xs md:text-sm font-mono ${isPositive ? 'text-[#00ff9d]' : 'text-[#ff4d4d]'}`}>
+                {isPositive ? '+' : ''}{priceChange.toFixed(1)}
               </span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <nav className="flex bg-[#1a1a1a] p-1 rounded-lg border border-[#333]">
+        <div className="flex items-center gap-2 md:gap-4 overflow-x-auto no-scrollbar max-w-full">
+          <nav className="flex bg-[#1a1a1a] p-0.5 rounded-lg border border-[#333]">
             {(['1m', '5m', '15m', '30m', '1h'] as Timeframe[]).map((tf) => (
               <button
                 key={tf}
                 onClick={() => setTimeframe(tf)}
-                className={`px-4 py-1 text-xs rounded transition-all font-medium ${
+                className={`px-2 md:px-4 py-1 text-[10px] md:text-xs rounded transition-all font-medium ${
                   timeframe === tf
                     ? 'bg-[#333] text-white'
                     : 'text-gray-400 hover:text-white'
@@ -191,57 +191,59 @@ export default function App() {
             ))}
           </nav>
 
-          <button 
-            onClick={fetchData}
-            className="p-1.5 rounded-lg border border-[#333] hover:bg-[#1a1a1a] transition-colors text-gray-500 mr-2"
-            title="刷新"
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          </button>
+          <div className="flex items-center gap-1.5 md:gap-2">
+            <button 
+              onClick={fetchData}
+              className="p-1.5 rounded-lg border border-[#333] hover:bg-[#1a1a1a] transition-colors text-gray-500"
+              title="刷新"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            </button>
 
-          <button 
-            onClick={togglePiP}
-            className={`p-1.5 rounded-lg border transition-colors flex items-center gap-2 mr-2 ${
-              pipWindow ? 'border-emerald-500 bg-emerald-500/10 text-emerald-500' : 'border-[#333] hover:bg-[#1a1a1a] text-gray-500'
-            }`}
-            title="开启悬浮窗"
-          >
-            <ExternalLink className="w-4 h-4" />
-            <span className="text-[10px] font-bold hidden sm:inline">悬浮小窗</span>
-          </button>
+            <button 
+              onClick={togglePiP}
+              className={`p-1.5 rounded-lg border transition-colors flex items-center gap-1.5 ${
+                pipWindow ? 'border-emerald-500 bg-emerald-500/10 text-emerald-500' : 'border-[#333] hover:bg-[#1a1a1a] text-gray-500'
+              }`}
+              title="开启悬浮窗"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span className="text-[9px] font-bold hidden lg:inline">小窗</span>
+            </button>
+          </div>
 
-          <div className="flex bg-[#1a1a1a] p-1 rounded-xl border border-[#333] shadow-inner">
+          <div className="flex bg-[#1a1a1a] p-1 rounded-xl border border-[#333] shadow-inner flex-shrink-0">
             <button
               onClick={() => setMode('kline')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all ${
                 mode === 'kline' ? 'bg-[#333] text-[#00ff9d] shadow-sm' : 'text-gray-500 hover:text-white'
               }`}
             >
-              <Activity className="w-4 h-4" />
-              <span className="text-[10px] font-bold uppercase">图表</span>
+              <Activity className="w-3.5 h-3.5" />
+              <span className="text-[9px] font-bold uppercase hidden sm:inline">图表</span>
             </button>
             <button
               onClick={() => setMode('kdj')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all ${
                 mode === 'kdj' ? 'bg-[#333] text-[#00ff9d] shadow-sm' : 'text-gray-500 hover:text-white'
               }`}
             >
-              <BarChart2 className="w-4 h-4" />
-              <span className="text-[10px] font-bold uppercase">KDJ</span>
+              <BarChart2 className="w-3.5 h-3.5" />
+              <span className="text-[9px] font-bold uppercase hidden sm:inline">KDJ</span>
             </button>
             <button
               onClick={() => setMode('blocks')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all ${
                 mode === 'blocks' ? 'bg-[#333] text-[#00ff9d] shadow-sm' : 'text-gray-500 hover:text-white'
               }`}
             >
               <div className="grid grid-cols-2 gap-0.5">
-                <div className="w-1.5 h-1.5 bg-current rounded-[1px]"></div>
-                <div className="w-1.5 h-1.5 bg-current rounded-[1px]"></div>
-                <div className="w-1.5 h-1.5 bg-current rounded-[1px]"></div>
-                <div className="w-1.5 h-1.5 bg-current rounded-[1px]"></div>
+                <div className="w-1 h-1 bg-current rounded-[0.5px]"></div>
+                <div className="w-1 h-1 bg-current rounded-[0.5px]"></div>
+                <div className="w-1 h-1 bg-current rounded-[0.5px]"></div>
+                <div className="w-1 h-1 bg-current rounded-[0.5px]"></div>
               </div>
-              <span className="text-[10px] font-bold uppercase">色块</span>
+              <span className="text-[9px] font-bold uppercase hidden sm:inline">色块</span>
             </button>
           </div>
         </div>
@@ -294,16 +296,16 @@ export default function App() {
       </main>
 
       <footer className="h-8 border-t border-[#222] bg-[#111] flex items-center justify-between px-4 text-[10px] text-gray-500 font-medium tracking-tight">
-        <div className="flex items-center space-x-4">
-          <span className="flex items-center space-x-1">
+        <div className="flex items-center space-x-3 md:space-x-4">
+          <span className="flex items-center space-x-1 flex-shrink-0">
             <span className={`w-1.5 h-1.5 rounded-full ${data.length > 0 ? 'bg-[#00ff9d]' : 'bg-orange-500 animate-pulse'}`}></span>
-            <span>{data.length > 0 ? '连接稳定' : '正在连接'}</span>
+            <span className="hidden sm:inline">{data.length > 0 ? '连接稳定' : '正在连接'}</span>
           </span>
-          <span>实时行情: 已激活</span>
+          <span className="opacity-70">行情激活</span>
         </div>
-        <div className="flex space-x-4 uppercase">
-           <span>UTC {new Date().getHours() >= 12 ? '+' : '-'}{(new Date().getTimezoneOffset() / 60) * -1}:00</span>
-           <span>{new Date().toISOString().slice(0, 10)}</span>
+        <div className="flex space-x-3 md:space-x-4 uppercase tabular-nums">
+           <span>UTC {new Date().getTimezoneOffset() <= 0 ? '+' : ''}{(new Date().getTimezoneOffset() / 60) * -1}:00</span>
+           <span className="hidden sm:inline">{new Date().toISOString().slice(0, 10)}</span>
         </div>
       </footer>
     </div>
