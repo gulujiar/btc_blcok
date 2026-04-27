@@ -41,6 +41,29 @@ export default function KDJBlockView({ data, isLoading, isPiP }: KDJBlockViewPro
       const diff = Math.abs(lastK - lastD);
       const threshold = 0.8; 
 
+      // Calculate trend duration (in terms of consecutive bars with same K/D relationship)
+      let bars = 0;
+      const isUp = lastK >= lastD;
+      for (let j = kdj.k.length - 1; j >= 0; j--) {
+        const barUp = kdj.k[j].value >= kdj.d[j].value;
+        if (barUp === isUp) {
+          bars++;
+        } else {
+          break;
+        }
+      }
+
+      const minutesPerBar = tf.endsWith('h') ? parseInt(tf) * 60 : parseInt(tf);
+      const totalMinutes = bars * minutesPerBar;
+      let durationStr = '';
+      if (totalMinutes >= 60) {
+        const hours = Math.floor(totalMinutes / 60);
+        const mins = totalMinutes % 60;
+        durationStr = mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+      } else {
+        durationStr = `${totalMinutes}m`;
+      }
+
       let color = '';
       let label = '';
       let textColor = 'text-black';
@@ -68,6 +91,8 @@ export default function KDJBlockView({ data, isLoading, isPiP }: KDJBlockViewPro
         d: isNaN(lastD) ? '--' : lastD.toFixed(2),
         kDiff,
         angle,
+        durationStr,
+        bars,
         status: 'ready'
       };
     });
@@ -103,7 +128,7 @@ export default function KDJBlockView({ data, isLoading, isPiP }: KDJBlockViewPro
               </div>
 
               {/* Central Large Trend Indicator */}
-              <div className="flex-1 flex items-center justify-center max-w-[80px] lg:max-w-none">
+              <div className="flex-1 flex items-center justify-center max-w-[120px] lg:max-w-none gap-4">
                 <motion.div
                   initial={{ scale: 0, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1, rotate: res.angle }}
@@ -130,6 +155,11 @@ export default function KDJBlockView({ data, isLoading, isPiP }: KDJBlockViewPro
                     <div className="w-8 lg:w-16 h-1.5 lg:h-3 bg-current rounded-full" />
                   )}
                 </motion.div>
+
+                <div className={`flex flex-col font-mono tracking-tighter ${res.textColor} opacity-80 pip-hide-data`}>
+                  <span className="text-sm lg:text-3xl font-black leading-none">{res.durationStr}</span>
+                  <span className="text-[7px] lg:text-sm font-bold uppercase leading-tight opacity-50">{res.bars} BARS</span>
+                </div>
               </div>
               
               <div className="flex gap-2 lg:gap-8 font-mono text-xs sm:text-sm lg:text-xl font-black bg-black/15 px-2 lg:px-10 py-1.5 lg:py-5 rounded-lg lg:rounded-2xl backdrop-blur-md border border-black/5 shadow-xl pip-hide-data">
