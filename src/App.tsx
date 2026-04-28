@@ -4,6 +4,7 @@ import { RefreshCw, BarChart2, Activity, ExternalLink } from 'lucide-react';
 import { motion } from 'motion/react';
 import CandleChart from './components/CandleChart';
 import KDJBlockView from './components/KDJBlockView';
+import { PredictionPanel } from './components/PredictionPanel';
 import ErrorBoundary from './components/ErrorBoundary';
 import { fetchKlines, Timeframe } from './services/binance';
 import { Kline, calculateKDJ } from './lib/indicators';
@@ -13,6 +14,7 @@ export default function App() {
   const [timeframe, setTimeframe] = useState<Timeframe>('1m');
   const [isLoading, setIsLoading] = useState(true);
   const [mode, setMode] = useState<'kline' | 'kdj' | 'blocks'>('blocks');
+  const [showPrediction, setShowPrediction] = useState(true);
   const [allTimeframesData, setAllTimeframesData] = useState<Record<Timeframe, Kline[]>>({
     '1m': [],
     '5m': [],
@@ -23,6 +25,23 @@ export default function App() {
   
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
   const pipContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Calculate current KDJ for all timeframes for prediction
+  const currentKDJAll = useMemo(() => {
+    const results: Record<string, { k: number, d: number }> = {};
+    (Object.entries(allTimeframesData) as [Timeframe, Kline[]][]).forEach(([tf, klines]) => {
+      if (klines && klines.length >= 9) {
+        const kdj = calculateKDJ(klines);
+        if (kdj.k.length > 0) {
+          results[tf] = {
+            k: kdj.k[kdj.k.length - 1].value,
+            d: kdj.d[kdj.d.length - 1].value
+          };
+        }
+      }
+    });
+    return results;
+  }, [allTimeframesData]);
 
   const togglePiP = useCallback(async () => {
     if (pipWindow) {
@@ -249,9 +268,9 @@ export default function App() {
         </div>
       </header>
 
-      <main className="flex-1 flex overflow-hidden">
+      <main className="flex-1 flex overflow-hidden flex-col lg:flex-row">
         <ErrorBoundary>
-          <div className="flex-1 flex flex-col bg-[#0a0a0a] relative">
+          <div className="flex-1 flex flex-col bg-[#0a0a0a] relative overflow-hidden">
             {mode === 'blocks' ? (
               pipWindow && pipContainerRef.current ? (
                 <div className="flex-1 flex items-center justify-center text-zinc-600 flex-col gap-4">
@@ -265,14 +284,28 @@ export default function App() {
                   </button>
                 </div>
               ) : (
-                <KDJBlockView data={allTimeframesData} isLoading={isLoading} />
+                <div className="flex-1 flex flex-col p-4 gap-4 overflow-auto">
+                    <PredictionPanel 
+                        allKlines={allTimeframesData} 
+                        currentKDJ={currentKDJAll} 
+                    />
+                    <div className="flex-1 min-h-[500px]">
+                        <KDJBlockView data={allTimeframesData} isLoading={isLoading} />
+                    </div>
+                </div>
               )
             ) : (
-              <div className="p-4 flex-1 flex flex-col">
+              <div className="p-4 flex-1 flex flex-col gap-4 min-h-0">
+                <div className="lg:hidden">
+                    <PredictionPanel 
+                        allKlines={allTimeframesData} 
+                        currentKDJ={currentKDJAll} 
+                    />
+                </div>
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  key={mode} // Trigger animation on mode change
+                  key={mode} 
                   className="flex-1 min-h-0"
                 >
                   <CandleChart 
@@ -285,11 +318,43 @@ export default function App() {
               </div>
             )}
           </div>
+          
+          {mode !== 'blocks' && (
+            <aside className="hidden lg:flex w-80 border-l border-[#222] bg-[#0d0d0d] p-4 flex-col gap-4 overflow-y-auto">
+               <PredictionPanel 
+                    allKlines={allTimeframesData} 
+                    currentKDJ={currentKDJAll} 
+                />
+                
+                <div className="bg-[#111] rounded-2xl p-4 border border-white/5">
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-3">多空博弈提示</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-zinc-400">当前主趋势</span>
+                      <span className={`text-xs font-bold ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {isPositive ? '震荡上行' : '震荡下行'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-zinc-400">平均波动率</span>
+                      <span className="text-xs text-zinc-200 font-mono">{(Math.abs(priceChange) / currentPrice * 100).toFixed(4)}%</span>
+                    </div>
+                  </div>
+                </div>
+            </aside>
+          )}
         </ErrorBoundary>
 
         {pipWindow && pipContainerRef.current && createPortal(
           <div className="h-screen w-screen bg-[#0d0d0d] overflow-hidden flex flex-col">
-            <KDJBlockView data={allTimeframesData} isLoading={isLoading} isPiP={true} />
+            <PredictionPanel 
+              allKlines={allTimeframesData} 
+              currentKDJ={currentKDJAll} 
+              isPiP 
+            />
+            <div className="flex-1 overflow-hidden">
+              <KDJBlockView data={allTimeframesData} isLoading={isLoading} isPiP={true} />
+            </div>
           </div>,
           pipContainerRef.current
         )}
