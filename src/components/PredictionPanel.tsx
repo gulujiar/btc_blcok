@@ -42,27 +42,45 @@ export const PredictionPanel: React.FC<PredictionPanelProps> = ({ allKlines, cur
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className={`relative overflow-hidden bg-black/40 border-b border-white/10 p-2 flex items-center justify-between gap-2`}
+        className={`relative overflow-hidden bg-black/40 border-b border-white/10 p-2 flex flex-col gap-2`}
       >
-        <div className="flex items-center gap-2">
-          <div className={`flex items-center justify-center p-1 rounded-md ${isUp ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
-            {isUp ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-          </div>
-          <div className="flex flex-col">
-            <span className={`text-xs font-black ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
-              PREDICT: {isUp ? 'UP' : 'DOWN'}
-            </span>
-            <div className="flex items-center gap-1">
-               <span className="text-[7px] text-white/30 font-mono">MATCH: {confidencePercent}%</span>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className={`flex items-center justify-center p-1 rounded-md ${isUp ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+              {isUp ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+            </div>
+            <div className="flex flex-col">
+              <span className={`text-[10px] font-black ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+                PREDICT: {isUp ? 'UP' : 'DOWN'}
+              </span>
+              <span className="text-[7px] text-white/30 font-mono">MATCH: {confidencePercent}%</span>
             </div>
           </div>
+          
+          <div className="flex-1 max-w-[100px] h-1 bg-white/5 rounded-full overflow-hidden self-center">
+            <div 
+              style={{ width: `${confidencePercent}%` }}
+              className={`h-full ${isUp ? 'bg-emerald-500' : 'bg-rose-500'}`}
+            />
+          </div>
         </div>
-        
-        <div className="w-16 h-1 bg-white/5 rounded-full overflow-hidden">
-          <div 
-            style={{ width: `${confidencePercent}%` }}
-            className={`h-full ${isUp ? 'bg-emerald-500' : 'bg-rose-500'}`}
-          />
+
+        <div className="grid grid-cols-5 gap-1 pt-1 border-t border-white/5">
+          {['1m', '5m', '15m', '30m', '1h'].map((tf) => {
+            const score = result.tfScores[tf] || 0;
+            return (
+              <div key={tf} className="flex flex-col gap-0.5">
+                <div className="h-0.5 bg-white/5 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${score * 100}%` }}
+                    className={`h-full ${isUp ? 'bg-emerald-500/50' : 'bg-rose-500/50'}`}
+                  />
+                </div>
+                <span className="text-[5px] text-center opacity-30 text-white font-mono">{tf}</span>
+              </div>
+            );
+          })}
         </div>
       </motion.div>
     );
