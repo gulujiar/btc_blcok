@@ -121,23 +121,27 @@ export class PatternMatcher {
 
     const currentVec = vectorize({ timestamp: Date.now(), price: 0, states: currentStates }, this.timeframes);
 
-    // Find top 20 similar historical patterns that HAVE a futureReturn label
+    // Find the single absolute most similar historical pattern
     const labeledHistory = this.history.filter(s => s.futureReturn !== undefined);
-    const scored = labeledHistory.map(h => ({
-      score: euclideanDistance(currentVec, vectorize(h, this.timeframes)),
-      snapshot: h
-    })).sort((a, b) => a.score - b.score);
+    if (labeledHistory.length === 0) return { probability: 0.5, confidence: 0, similarCounts: 0 };
 
-    const topN = scored.slice(0, 30);
-    if (topN.length === 0) return { probability: 0.5, confidence: 0, similarCounts: 0 };
+    let topMatch = labeledHistory[0];
+    let minScore = euclideanDistance(currentVec, vectorize(topMatch, this.timeframes));
 
-    const ups = topN.filter(n => (n.snapshot.futureReturn || 0) > 0).length;
-    const probability = ups / topN.length;
+    for (let i = 1; i < labeledHistory.length; i++) {
+        const score = euclideanDistance(currentVec, vectorize(labeledHistory[i], this.timeframes));
+        if (score < minScore) {
+            minScore = score;
+            topMatch = labeledHistory[i];
+        }
+    }
+
+    // Probability is binary based on the most similar pattern's outcome
+    const probability = (topMatch.futureReturn || 0) > 0 ? 1 : 0;
     
-    // Confidence is higher if the scores (distances) are smaller
-    const avgScore = topN.reduce((acc, val) => acc + val.score, 0) / topN.length;
-    const confidence = Math.max(0, 1 - (avgScore / 100)); // Normalized confidence
+    // Confidence is based on distance to the single top match
+    const confidence = Math.max(0, 1 - (minScore / 60));
 
-    return { probability, confidence, similarCounts: topN.length };
+    return { probability, confidence, similarCounts: 1 };
   }
 }

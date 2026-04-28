@@ -50,17 +50,17 @@ export const PredictionPanel: React.FC<PredictionPanelProps> = ({ allKlines, cur
           </div>
           <div className="flex flex-col">
             <span className={`text-xs font-black ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
-              {isUp ? probPercent : 100 - probPercent}% {isUp ? 'UP' : 'DOWN'}
+              PREDICT: {isUp ? 'UP' : 'DOWN'}
             </span>
             <div className="flex items-center gap-1">
-               <span className="text-[7px] text-white/30 font-mono">CONF: {confidencePercent}%</span>
+               <span className="text-[7px] text-white/30 font-mono">MATCH: {confidencePercent}%</span>
             </div>
           </div>
         </div>
         
         <div className="w-16 h-1 bg-white/5 rounded-full overflow-hidden">
           <div 
-            style={{ width: `${probPercent}%` }}
+            style={{ width: `${confidencePercent}%` }}
             className={`h-full ${isUp ? 'bg-emerald-500' : 'bg-rose-500'}`}
           />
         </div>
@@ -79,11 +79,11 @@ export const PredictionPanel: React.FC<PredictionPanelProps> = ({ allKlines, cur
           <div className={`p-1.5 rounded-lg ${isUp ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
             <ShieldCheck className="w-4 h-4" />
           </div>
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">历史模式预测 (10M)</span>
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">最优历史镜像模式 (12H)</span>
         </div>
         <div className="flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-full border border-white/5">
           <div className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse"></div>
-          <span className="text-[8px] font-mono text-white/30">N={result.similarCounts}</span>
+          <span className="text-[8px] font-mono text-white/30">MATCH FOUND</span>
         </div>
       </div>
 
@@ -91,18 +91,18 @@ export const PredictionPanel: React.FC<PredictionPanelProps> = ({ allKlines, cur
         <div className="flex-1">
           <div className="flex items-baseline gap-2 mb-1">
             <span className={`text-4xl lg:text-5xl font-black ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
-              {isUp ? probPercent : 100 - probPercent}%
+              {isUp ? '看涨' : '看跌'}
             </span>
-            <span className={`text-sm font-bold uppercase ${isUp ? 'text-emerald-500/50' : 'text-rose-500/50'}`}>
-              {isUp ? '看涨' : '看跌'}概率
+            <span className="text-sm font-bold uppercase text-white/30">
+              预期方向
             </span>
           </div>
           
           <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
             <motion.div 
               initial={{ width: 0 }}
-              animate={{ width: `${probPercent}%` }}
-              className={`h-full ${isUp ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]'}`}
+              animate={{ width: `${confidencePercent}%` }}
+              className={`h-full ${isUp ? 'bg-emerald-500' : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]'}`}
             />
           </div>
         </div>
@@ -112,7 +112,7 @@ export const PredictionPanel: React.FC<PredictionPanelProps> = ({ allKlines, cur
             {isUp ? <TrendingUp className="w-6 h-6" /> : <TrendingDown className="w-6 h-6" />}
           </div>
           <div className="text-right">
-            <div className="text-[10px] font-bold text-white/30 uppercase">置信度</div>
+            <div className="text-[10px] font-bold text-white/30 uppercase">匹配度</div>
             <div className="text-sm font-mono font-bold text-white/60">{confidencePercent}%</div>
           </div>
         </div>
@@ -120,15 +120,15 @@ export const PredictionPanel: React.FC<PredictionPanelProps> = ({ allKlines, cur
 
       <div className="mt-4 pt-4 border-t border-white/5 flex gap-4">
         <div className="flex-1">
-          <div className="text-[8px] uppercase text-white/20 font-bold mb-1">多周期共振强度</div>
+          <div className="text-[8px] uppercase text-white/20 font-bold mb-1">多周期重合评分</div>
           <div className="grid grid-cols-5 gap-1">
             {[1,2,3,4,5].map(i => (
-              <div key={i} className={`h-1 rounded-full ${i <= (confidencePercent / 20) ? 'bg-white/20' : 'bg-white/5'}`} />
+              <div key={i} className={`h-1 rounded-full ${i <= (confidencePercent / 20) ? (isUp ? 'bg-emerald-500/50' : 'bg-rose-500/50') : 'bg-white/5'}`} />
             ))}
           </div>
         </div>
         <p className="text-[9px] text-white/20 italic max-w-[120px] leading-tight">
-          基于过去12h内最相似的{result.similarCounts}个历史时刻统计
+          已在过去12小时记录中找寻到形态最匹配的单一时刻，图示其后续10分钟表现
         </p>
       </div>
     </motion.div>
