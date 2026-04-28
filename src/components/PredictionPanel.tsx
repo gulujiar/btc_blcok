@@ -97,14 +97,6 @@ export const PredictionPanel: React.FC<PredictionPanelProps> = ({ allKlines, cur
               预期方向
             </span>
           </div>
-          
-          <div className="w-full h-1 lg:h-1.5 bg-white/5 rounded-full overflow-hidden">
-            <motion.div 
-              initial={{ width: 0 }}
-              animate={{ width: `${confidencePercent}%` }}
-              className={`h-full ${isUp ? 'bg-emerald-500' : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]'}`}
-            />
-          </div>
         </div>
 
         <div className="flex flex-col items-end gap-1 lg:gap-2">
@@ -112,23 +104,35 @@ export const PredictionPanel: React.FC<PredictionPanelProps> = ({ allKlines, cur
             {isUp ? <TrendingUp className="w-4 h-4 lg:w-6 lg:h-6" /> : <TrendingDown className="w-4 h-4 lg:w-6 lg:h-6" />}
           </div>
           <div className="text-right">
-            <div className="text-[8px] lg:text-[10px] font-bold text-white/30 uppercase">匹配度</div>
+            <div className="text-[8px] lg:text-[10px] font-bold text-white/30 uppercase">拟合精度</div>
             <div className="text-xs lg:text-sm font-mono font-bold text-white/60">{confidencePercent}%</div>
           </div>
         </div>
       </div>
 
-      <div className="mt-2 lg:mt-4 pt-2 lg:pt-4 border-t border-white/5 flex flex-col sm:flex-row gap-2 lg:gap-4">
+      <div className="mt-2 lg:mt-4 pt-2 lg:pt-4 border-t border-white/5 flex flex-col sm:flex-row gap-4 lg:gap-6">
         <div className="flex-1">
-          <div className="text-[7px] lg:text-[8px] uppercase text-white/20 font-bold mb-1">多周期重合评分</div>
-          <div className="grid grid-cols-5 gap-1">
-            {[1,2,3,4,5].map(i => (
-              <div key={i} className={`h-0.5 lg:h-1 rounded-full ${i <= (confidencePercent / 20) ? (isUp ? 'bg-emerald-500/50' : 'bg-rose-500/50') : 'bg-white/5'}`} />
-            ))}
+          <div className="text-[7px] lg:text-[8px] uppercase text-white/20 font-bold mb-2">多周期拟合评分 (1m - 1h)</div>
+          <div className="grid grid-cols-5 gap-1.5">
+            {['1m', '5m', '15m', '30m', '1h'].map((tf) => {
+              const score = result.tfScores[tf] || 0;
+              return (
+                <div key={tf} className="flex flex-col gap-1">
+                  <div className="h-1 lg:h-1.5 bg-white/5 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${score * 100}%` }}
+                      className={`h-full ${isUp ? 'bg-emerald-500/60' : 'bg-rose-500/60'}`}
+                    />
+                  </div>
+                  <span className="text-[6px] lg:text-[7px] text-center opacity-30 text-white font-mono">{tf}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
-        <p className="text-[8px] lg:text-[9px] text-white/20 italic max-w-full sm:max-w-[120px] leading-tight">
-          形态匹配镜像时刻，图示其后续表现
+        <p className="text-[8px] lg:text-[9px] text-white/20 italic max-w-full sm:max-w-[140px] leading-tight">
+          深度神经网络模式识别：正在对五个核心周期进行多维拟合计算
         </p>
       </div>
     </motion.div>
