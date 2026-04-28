@@ -74,31 +74,31 @@ export const PredictionPanel: React.FC<PredictionPanelProps> = ({ allKlines, cur
       animate={{ opacity: 1, y: 0 }}
       className="relative overflow-hidden bg-gradient-to-br from-[#161616] to-[#0a0a0a] border border-white/10 rounded-2xl p-5 shadow-2xl"
     >
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className={`p-1.5 rounded-lg ${isUp ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
-            <ShieldCheck className="w-4 h-4" />
+      <div className="flex items-center justify-between mb-2 lg:mb-4">
+        <div className="flex items-center gap-1 lg:gap-2">
+          <div className={`p-1 lg:p-1.5 rounded-lg ${isUp ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+            <ShieldCheck className="w-3 h-3 lg:w-4 lg:h-4" />
           </div>
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">最优历史镜像模式 (12H)</span>
+          <span className="text-[8px] lg:text-[10px] font-black uppercase tracking-[0.1em] lg:tracking-[0.2em] text-white/40">最优历史镜像模式 (12H)</span>
         </div>
-        <div className="flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-full border border-white/5">
+        <div className="flex items-center gap-1 bg-white/5 px-1.5 lg:px-2 py-0.5 rounded-full border border-white/5">
           <div className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse"></div>
-          <span className="text-[8px] font-mono text-white/30">MATCH FOUND</span>
+          <span className="text-[7px] lg:text-[8px] font-mono text-white/30">MATCH FOUND</span>
         </div>
       </div>
 
-      <div className="flex items-end justify-between gap-6">
+      <div className="flex items-end justify-between gap-2 lg:gap-6">
         <div className="flex-1">
-          <div className="flex items-baseline gap-2 mb-1">
-            <span className={`text-4xl lg:text-5xl font-black ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+          <div className="flex items-baseline gap-1 lg:gap-2 mb-1">
+            <span className={`text-2xl sm:text-3xl lg:text-5xl font-black ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
               {isUp ? '看涨' : '看跌'}
             </span>
-            <span className="text-sm font-bold uppercase text-white/30">
+            <span className="text-[8px] lg:text-sm font-bold uppercase text-white/30">
               预期方向
             </span>
           </div>
           
-          <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+          <div className="w-full h-1 lg:h-1.5 bg-white/5 rounded-full overflow-hidden">
             <motion.div 
               initial={{ width: 0 }}
               animate={{ width: `${confidencePercent}%` }}
@@ -107,28 +107,28 @@ export const PredictionPanel: React.FC<PredictionPanelProps> = ({ allKlines, cur
           </div>
         </div>
 
-        <div className="flex flex-col items-end gap-2">
-          <div className={`flex items-center gap-1 p-2 rounded-xl border border-white/5 bg-white/5 ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
-            {isUp ? <TrendingUp className="w-6 h-6" /> : <TrendingDown className="w-6 h-6" />}
+        <div className="flex flex-col items-end gap-1 lg:gap-2">
+          <div className={`flex items-center gap-1 p-1.5 lg:p-2 rounded-lg lg:rounded-xl border border-white/5 bg-white/5 ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+            {isUp ? <TrendingUp className="w-4 h-4 lg:w-6 lg:h-6" /> : <TrendingDown className="w-4 h-4 lg:w-6 lg:h-6" />}
           </div>
           <div className="text-right">
-            <div className="text-[10px] font-bold text-white/30 uppercase">匹配度</div>
-            <div className="text-sm font-mono font-bold text-white/60">{confidencePercent}%</div>
+            <div className="text-[8px] lg:text-[10px] font-bold text-white/30 uppercase">匹配度</div>
+            <div className="text-xs lg:text-sm font-mono font-bold text-white/60">{confidencePercent}%</div>
           </div>
         </div>
       </div>
 
-      <div className="mt-4 pt-4 border-t border-white/5 flex gap-4">
+      <div className="mt-2 lg:mt-4 pt-2 lg:pt-4 border-t border-white/5 flex flex-col sm:flex-row gap-2 lg:gap-4">
         <div className="flex-1">
-          <div className="text-[8px] uppercase text-white/20 font-bold mb-1">多周期重合评分</div>
+          <div className="text-[7px] lg:text-[8px] uppercase text-white/20 font-bold mb-1">多周期重合评分</div>
           <div className="grid grid-cols-5 gap-1">
             {[1,2,3,4,5].map(i => (
-              <div key={i} className={`h-1 rounded-full ${i <= (confidencePercent / 20) ? (isUp ? 'bg-emerald-500/50' : 'bg-rose-500/50') : 'bg-white/5'}`} />
+              <div key={i} className={`h-0.5 lg:h-1 rounded-full ${i <= (confidencePercent / 20) ? (isUp ? 'bg-emerald-500/50' : 'bg-rose-500/50') : 'bg-white/5'}`} />
             ))}
           </div>
         </div>
-        <p className="text-[9px] text-white/20 italic max-w-[120px] leading-tight">
-          已在过去12小时记录中找寻到形态最匹配的单一时刻，图示其后续10分钟表现
+        <p className="text-[8px] lg:text-[9px] text-white/20 italic max-w-full sm:max-w-[120px] leading-tight">
+          形态匹配镜像时刻，图示其后续表现
         </p>
       </div>
     </motion.div>

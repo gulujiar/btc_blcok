@@ -285,18 +285,20 @@ export default function App() {
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col p-4 gap-4 overflow-auto">
-                    <PredictionPanel 
-                        allKlines={allTimeframesData} 
-                        currentKDJ={currentKDJAll} 
-                    />
-                    <div className="flex-1 min-h-[500px]">
+                    <div className="sticky top-0 z-10 drop-shadow-xl flex-shrink-0">
+                        <PredictionPanel 
+                            allKlines={allTimeframesData} 
+                            currentKDJ={currentKDJAll} 
+                        />
+                    </div>
+                    <div className="flex-1">
                         <KDJBlockView data={allTimeframesData} isLoading={isLoading} />
                     </div>
                 </div>
               )
             ) : (
               <div className="p-4 flex-1 flex flex-col gap-4 min-h-0">
-                <div className="lg:hidden">
+                <div className="lg:hidden flex-shrink-0">
                     <PredictionPanel 
                         allKlines={allTimeframesData} 
                         currentKDJ={currentKDJAll} 
