@@ -107,20 +107,20 @@ export default function App() {
 
   const symbol = 'BTCUSDT';
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
+  const fetchData = useCallback(async (isPolling = false) => {
+    if (!isPolling) setIsLoading(true);
     try {
       const klines = await fetchKlines(symbol, timeframe);
       setData(klines);
     } catch (error) {
       console.error('Error fetching klines:', error);
     } finally {
-      setIsLoading(false);
+      if (!isPolling) setIsLoading(false);
     }
   }, [symbol, timeframe]);
 
-  const fetchAllData = useCallback(async () => {
-    setIsLoading(true);
+  const fetchAllData = useCallback(async (isPolling = false) => {
+    if (!isPolling) setIsLoading(true);
     try {
       const tfs: Timeframe[] = ['1m', '5m', '15m', '30m', '1h'];
       const results = await Promise.all(tfs.map(tf => fetchKlines(symbol, tf)));
@@ -135,26 +135,26 @@ export default function App() {
 
       setAllTimeframesData(newData);
       
-      // Specifically update current data if in blocks mode to ensure chart/indicator logic has latest
-      if (mode === 'blocks') {
-        setData(newData[timeframe] || []);
-      }
+      // Specifically update current data if in blocks mode or if the current timeframe changed
+      setData(newData[timeframe] || []);
     } catch (error) {
       console.error('Error fetching all timeframes:', error);
     } finally {
-      setIsLoading(false);
+      if (!isPolling) setIsLoading(false);
     }
-  }, [symbol, timeframe, mode]);
+  }, [symbol, timeframe]);
 
   useEffect(() => {
-    const isBlocks = mode === 'blocks';
-    const fetchFunc = isBlocks ? fetchAllData : fetchData;
+    // Initial fetch always gets everything to warm up PredictionPanel
+    fetchAllData();
     
-    fetchFunc();
-    const interval = setInterval(fetchFunc, 10000);
+    // Poll every 30 seconds
+    const interval = setInterval(() => {
+      fetchAllData(true);
+    }, 30000);
     
     return () => clearInterval(interval);
-  }, [fetchAllData, fetchData, mode]);
+  }, [fetchAllData]);
 
   const currentPrice = data.length > 0 ? data[data.length - 1].close : 0;
   const priceChange = data.length > 1 ? currentPrice - data[data.length - 2].close : 0;
