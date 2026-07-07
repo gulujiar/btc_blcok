@@ -1,9 +1,10 @@
 
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { TrendingUp, TrendingDown, Info, ShieldCheck } from 'lucide-react';
+import { TrendingUp, TrendingDown, Info, ShieldCheck, Zap } from 'lucide-react';
 import { PatternMatcher } from '../lib/prediction';
 import { Kline } from '../lib/indicators';
+import { getVolumeAdvice } from '../lib/volumeAdvice';
 
 interface PredictionPanelProps {
   allKlines: Record<string, Kline[]>;
@@ -22,6 +23,11 @@ export const PredictionPanel: React.FC<PredictionPanelProps> = ({ allKlines, cur
     return matcher.predict(currentKDJ);
   }, [matcher, currentKDJ]);
 
+  const volAdvice = useMemo(() => {
+    const klines = allKlines['1m'] || [];
+    return getVolumeAdvice(klines);
+  }, [allKlines]);
+
   if (!result || result.confidence === 0) {
     return (
       <div className={`bg-[#111] border border-white/5 rounded-2xl flex items-center justify-center ${isPiP ? 'h-12' : 'h-24 p-4'}`}>
@@ -34,7 +40,6 @@ export const PredictionPanel: React.FC<PredictionPanelProps> = ({ allKlines, cur
   }
 
   const isUp = result.probability > 0.5;
-  const probPercent = Math.round(result.probability * 100);
   const confidencePercent = Math.round(result.confidence * 100);
 
   if (isPiP) {
@@ -64,6 +69,13 @@ export const PredictionPanel: React.FC<PredictionPanelProps> = ({ allKlines, cur
             />
           </div>
         </div>
+
+        {volAdvice && (
+          <div className="flex items-center gap-2 px-1 py-0.5 rounded bg-white/5 border border-white/5">
+            <Zap className={`w-3 h-3 ${volAdvice.type === 'bullish' ? 'text-emerald-400' : volAdvice.type === 'bearish' ? 'text-rose-400' : 'text-amber-400'}`} />
+            <span className="text-[8px] font-black text-white/60 uppercase">{volAdvice.label}</span>
+          </div>
+        )}
 
         <div className="grid grid-cols-5 gap-1 pt-1 border-t border-white/5">
           {['1m', '5m', '15m', '30m', '1h'].map((tf) => {
@@ -127,6 +139,25 @@ export const PredictionPanel: React.FC<PredictionPanelProps> = ({ allKlines, cur
           </div>
         </div>
       </div>
+
+      {volAdvice && (
+        <motion.div 
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          className={`mt-4 p-3 rounded-xl border flex items-start gap-3 bg-white/5 ${
+            volAdvice.type === 'bullish' ? 'border-emerald-500/20 text-emerald-400' : 
+            volAdvice.type === 'bearish' ? 'border-rose-500/20 text-rose-400' : 
+            volAdvice.type === 'warning' ? 'border-amber-500/20 text-amber-400' :
+            'border-zinc-500/20 text-zinc-400'
+          }`}
+        >
+          <Zap className="w-5 h-5 mt-0.5 shrink-0" />
+          <div className="flex flex-col">
+            <span className="text-xs font-black uppercase tracking-wider">{volAdvice.label}</span>
+            <span className="text-[10px] opacity-70 font-medium leading-tight">{volAdvice.description}</span>
+          </div>
+        </motion.div>
+      )}
 
       <div className="mt-2 lg:mt-4 pt-2 lg:pt-4 border-t border-white/5 flex flex-col sm:flex-row gap-4 lg:gap-6">
         <div className="flex-1">

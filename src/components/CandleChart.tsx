@@ -14,6 +14,8 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
+  const volMa5Ref = useRef<ISeriesApi<'Line'> | null>(null);
+  const volMa10Ref = useRef<ISeriesApi<'Line'> | null>(null);
   const kSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
   const dSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
   const jSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
@@ -78,11 +80,27 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
       scaleMargins: { top: 0.8, bottom: 0 },
     });
     volumeSeriesRef.current = volumeSeries;
+    
+    const volMa5 = chart.addLineSeries({
+      color: '#fcd34d',
+      lineWidth: 1,
+      priceScaleId: 'volume',
+      title: 'VOL MA5',
+    });
+    volMa5Ref.current = volMa5;
+
+    const volMa10 = chart.addLineSeries({
+      color: '#3b82f6',
+      lineWidth: 1,
+      priceScaleId: 'volume',
+      title: 'VOL MA10',
+    });
+    volMa10Ref.current = volMa10;
 
     const kSeries = chart.addLineSeries({ color: '#fcd34d', lineWidth: 1, title: 'K' });
     const dSeries = chart.addLineSeries({ color: '#3b82f6', lineWidth: 1, title: 'D' });
     const jSeries = chart.addLineSeries({ color: '#ec4899', lineWidth: 1, title: 'J' });
-    
+
     kSeriesRef.current = kSeries;
     dSeriesRef.current = dSeries;
     jSeriesRef.current = jSeries;
@@ -105,17 +123,26 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
   }, []);
 
   useEffect(() => {
-    if (!candleSeriesRef.current || !volumeSeriesRef.current || !kSeriesRef.current || !dSeriesRef.current || !jSeriesRef.current) return;
+    if (!candleSeriesRef.current || !volumeSeriesRef.current || !volMa5Ref.current || !volMa10Ref.current || !kSeriesRef.current || !dSeriesRef.current || !jSeriesRef.current) return;
 
     // Toggle visibility
     const isKline = mode === 'kline';
-    candleSeriesRef.current.applyOptions({ visible: isKline });
-    volumeSeriesRef.current.applyOptions({ visible: isKline });
-    kSeriesRef.current.applyOptions({ visible: !isKline });
-    dSeriesRef.current.applyOptions({ visible: !isKline });
-    jSeriesRef.current.applyOptions({ visible: !isKline });
+    const isKDJ = mode === 'kdj';
 
-    if (isKline) {
+    // Candle series is visible in both modes
+    candleSeriesRef.current.applyOptions({ visible: true });
+    
+    // Volume is only for kline
+    volumeSeriesRef.current.applyOptions({ visible: isKline });
+    volMa5Ref.current.applyOptions({ visible: isKline });
+    volMa10Ref.current.applyOptions({ visible: isKline });
+    
+    // KDJ series
+    kSeriesRef.current.applyOptions({ visible: isKDJ });
+    dSeriesRef.current.applyOptions({ visible: isKDJ });
+    jSeriesRef.current.applyOptions({ visible: isKDJ });
+
+    if (isKline || isKDJ) {
       const candles: CandlestickData[] = data.map(d => ({
         time: d.time as any,
         open: d.open,
@@ -130,8 +157,29 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
         color: d.close >= d.open ? 'rgba(0, 255, 136, 0.3)' : 'rgba(255, 71, 87, 0.3)',
       }));
 
+      // Calculate Volume MAs
+      const ma5: LineData[] = [];
+      const ma10: LineData[] = [];
+
+      for (let i = 0; i < data.length; i++) {
+        // MA5
+        if (i >= 4) {
+          let sum = 0;
+          for (let j = 0; j < 5; j++) sum += data[i - j].volume;
+          ma5.push({ time: data[i].time as any, value: sum / 5 });
+        }
+        // MA10
+        if (i >= 9) {
+          let sum = 0;
+          for (let j = 0; j < 10; j++) sum += data[i - j].volume;
+          ma10.push({ time: data[i].time as any, value: sum / 10 });
+        }
+      }
+
       candleSeriesRef.current.setData(candles);
       volumeSeriesRef.current.setData(volumes);
+      volMa5Ref.current.setData(ma5);
+      volMa10Ref.current.setData(ma10);
     } else if (kdjData) {
       kSeriesRef.current.setData(kdjData.k);
       dSeriesRef.current.setData(kdjData.d);

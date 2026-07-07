@@ -123,14 +123,14 @@ export default function App() {
     if (!isPolling) setIsLoading(true);
     try {
       const tfs: Timeframe[] = ['1m', '5m', '15m', '30m', '1h'];
-      const results = await Promise.all(tfs.map(tf => fetchKlines(symbol, tf)));
+      const klineResults = await Promise.all(tfs.map(tf => fetchKlines(symbol, tf)));
       
       const newData = {
-        '1m': results[0] || [],
-        '5m': results[1] || [],
-        '15m': results[2] || [],
-        '30m': results[3] || [],
-        '1h': results[4] || []
+        '1m': klineResults[0] || [],
+        '5m': klineResults[1] || [],
+        '15m': klineResults[2] || [],
+        '30m': klineResults[3] || [],
+        '1h': klineResults[4] || []
       } as Record<Timeframe, Kline[]>;
 
       setAllTimeframesData(newData);
@@ -313,7 +313,7 @@ export default function App() {
                   <CandleChart 
                     data={data} 
                     isLoading={isLoading} 
-                    mode={mode}
+                    mode={mode as any}
                     kdjData={kdjData}
                   />
                 </motion.div>
