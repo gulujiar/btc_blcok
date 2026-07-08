@@ -61,7 +61,7 @@ export function getVolumeAdvice(data: Kline[], kdj?: KDJData): VolumeAdvice | nu
 
     isKDJGolden = kPrev <= dPrev && kVal > dVal;
     isKDJDead = kPrev >= dPrev && kVal < dVal;
-    isKDJLow = kVal < 50;
+    isKDJLow = kVal <= 50;
     isKDJHigh = kVal > 50;
   }
 
@@ -102,7 +102,7 @@ export function getVolumeAdvice(data: Kline[], kdj?: KDJData): VolumeAdvice | nu
       label: '低位金叉无量',
       type: 'warning',
       suggestion: '弱反弹，观察',
-      description: '指标想反弹但动能不足',
+      description: '动能不足',
       comboSignal: 'Rule 2'
     };
   }
@@ -122,7 +122,7 @@ export function getVolumeAdvice(data: Kline[], kdj?: KDJData): VolumeAdvice | nu
       label: '高位死叉无量',
       type: 'warning',
       suggestion: '弱回调，观察',
-      description: '指标死叉但杀跌动力不足',
+      description: '杀跌动力不足',
       comboSignal: 'Rule 4'
     };
   }
@@ -132,7 +132,7 @@ export function getVolumeAdvice(data: Kline[], kdj?: KDJData): VolumeAdvice | nu
       label: '高位放量延续',
       type: 'bullish',
       suggestion: '强势延续，不要乱空',
-      description: '多头意愿强烈，行情持续走强',
+      description: '多头意愿强烈',
       comboSignal: 'Rule 5'
     };
   }
@@ -142,7 +142,7 @@ export function getVolumeAdvice(data: Kline[], kdj?: KDJData): VolumeAdvice | nu
       label: '高位缩量上涨',
       type: 'warning',
       suggestion: '缩量上涨，谨慎追多',
-      description: '防范冲高回落风险',
+      description: '防范冲高回落',
       comboSignal: 'Rule 6'
     };
   }
@@ -152,7 +152,7 @@ export function getVolumeAdvice(data: Kline[], kdj?: KDJData): VolumeAdvice | nu
       label: '低位放量杀跌',
       type: 'bearish',
       suggestion: '放量杀跌，不要抄底',
-      description: '趋势仍向下，抛压尚未出尽',
+      description: '趋势仍向下',
       comboSignal: 'Rule 7'
     };
   }
@@ -162,7 +162,7 @@ export function getVolumeAdvice(data: Kline[], kdj?: KDJData): VolumeAdvice | nu
       label: '低位缩量下跌',
       type: 'neutral',
       suggestion: '缩量下跌，不追空',
-      description: '等反转信号出现',
+      description: '等反转信号',
       comboSignal: 'Rule 8'
     };
   }
