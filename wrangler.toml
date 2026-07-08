@@ -1,5 +1,6 @@
 name = "btcblcok"
+main = "src/worker.js"
 compatibility_date = "2024-07-08"
 
-[site]
-bucket = "./dist"
+[assets]
+directory = "./dist"

@@ -78,10 +78,10 @@ export function getVolumeAdvice(data: Kline[], kdj?: KDJData): VolumeAdvice | nu
   const recentHigh = Math.max(...data.slice(-10, -1).map(d => d.high));
   const recentLow = Math.min(...data.slice(-10, -1).map(d => d.low));
 
-  // Indicator States (instead of just Crosses) to cover all time points
-  const isKDJPos = kVal > dVal;
+  // Indicator States (instead of just Crosses) to cover all cases
+  const isKDJPos = kVal >= dVal;
   const isKDJNeg = kVal < dVal;
-  const isVolPos = volMa5Current > volMa20Current;
+  const isVolPos = volMa5Current >= volMa20Current;
   const isVolNeg = volMa5Current < volMa20Current;
 
   // --- 8 Specific KDJ + VOL MA Combinations (State-based) ---
