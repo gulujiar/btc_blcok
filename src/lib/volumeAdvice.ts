@@ -5,14 +5,22 @@ export interface VolumeAdvice {
   label: string;
   type: 'bullish' | 'bearish' | 'neutral' | 'warning';
   description: string;
+  suggestion?: string;
+  comboSignal?: string;
 }
 
-export function getVolumeAdvice(data: Kline[]): VolumeAdvice | null {
+export interface KDJData {
+  k: { value: number }[];
+  d: { value: number }[];
+  j: { value: number }[];
+}
+
+export function getVolumeAdvice(data: Kline[], kdj?: KDJData): VolumeAdvice | null {
   if (data.length < 25) return null;
 
   const current = data[data.length - 1];
   const prev = data[data.length - 2];
-  
+
   // Calculate VOL MA20 and MA5
   const getMA = (len: number, offset: number = 0) => {
     let sum = 0;
@@ -33,13 +41,33 @@ export function getVolumeAdvice(data: Kline[]): VolumeAdvice | null {
   const upperShadow = isUp ? current.high - current.close : current.high - current.open;
   const lowerShadow = isUp ? current.open - current.low : current.close - current.low;
 
-  // MA Cross detection
-  const isGoldenCross = volMa5Prev <= volMa20Prev && volMa5Current > volMa20Current;
-  const isDeadCross = volMa5Prev >= volMa20Prev && volMa5Current < volMa20Current;
+  // Volume MA Cross detection
+  const isVolGoldenCross = volMa5Prev <= volMa20Prev && volMa5Current > volMa20Current;
+  const isVolDeadCross = volMa5Prev >= volMa20Prev && volMa5Current < volMa20Current;
+
+  // KDJ Logic
+  let isKDJGolden = false;
+  let isKDJDead = false;
+  let isKDJLow = false;
+  let isKDJHigh = false;
+  let kVal = 50;
+  let dVal = 50;
+
+  if (kdj && kdj.k.length > 2) {
+    kVal = kdj.k[kdj.k.length - 1].value;
+    dVal = kdj.d[kdj.d.length - 1].value;
+    const kPrev = kdj.k[kdj.k.length - 2].value;
+    const dPrev = kdj.d[kdj.d.length - 2].value;
+
+    isKDJGolden = kPrev <= dPrev && kVal > dVal;
+    isKDJDead = kPrev >= dPrev && kVal < dVal;
+    isKDJLow = kVal < 50;
+    isKDJHigh = kVal > 50;
+  }
 
   // Basic Volume states
-  const isHighVol = vol > volMa20Current * 1.5;
-  const isLowVol = vol < volMa20Current * 0.7;
+  const isHighVol = vol > volMa20Current * 1.1;
+  const isLowVol = vol < volMa20Current * 0.9;
   
   // Price states
   const isLongUpperShadow = upperShadow > body * 1.5 && upperShadow > 0;
@@ -50,31 +78,100 @@ export function getVolumeAdvice(data: Kline[]): VolumeAdvice | null {
   const recentHigh = Math.max(...data.slice(-10, -1).map(d => d.high));
   const recentLow = Math.min(...data.slice(-10, -1).map(d => d.low));
 
-  // Priority logic based on new rules
+  // Indicator States (instead of just Crosses) to cover all time points
+  const isKDJPos = kVal > dVal;
+  const isKDJNeg = kVal < dVal;
+  const isVolPos = volMa5Current > volMa20Current;
+  const isVolNeg = volMa5Current < volMa20Current;
 
-  // 1. Cross Signals
-  if (isGoldenCross) {
-    if (isUp) return { label: '量能金叉上涨', type: 'bullish', description: '成交活跃且价格上升，多头启动信号' };
-    if (!isUp && !isSideways) return { label: '量能金叉下跌', type: 'bearish', description: '成交活跃但价格下跌，空头放量风险' };
-    return { label: '量能金叉横盘', type: 'neutral', description: '成交活跃但方向不明，关注变盘方向' };
+  // --- 8 Specific KDJ + VOL MA Combinations (State-based) ---
+
+  // 1. KDJ 低位金叉 + VOL MA 金叉
+  if (isKDJLow && isKDJPos && isVolPos) {
+    return {
+      label: '低位放量金叉',
+      type: 'bullish',
+      suggestion: '低多确认',
+      description: '放量阳线是低多确认',
+      comboSignal: 'Rule 1'
+    };
+  }
+  // 2. KDJ 低位金叉 + VOL MA 死叉
+  if (isKDJLow && isKDJPos && isVolNeg) {
+    return {
+      label: '低位金叉无量',
+      type: 'warning',
+      suggestion: '弱反弹，观察',
+      description: '指标想反弹但动能不足',
+      comboSignal: 'Rule 2'
+    };
+  }
+  // 3. KDJ 高位死叉 + VOL MA 金叉
+  if (isKDJHigh && isKDJNeg && isVolPos) {
+    return {
+      label: '高位放量死叉',
+      type: 'bearish',
+      suggestion: '高空确认',
+      description: '放量阴线是高空确认',
+      comboSignal: 'Rule 3'
+    };
+  }
+  // 4. KDJ 高位死叉 + VOL MA 死叉
+  if (isKDJHigh && isKDJNeg && isVolNeg) {
+    return {
+      label: '高位死叉无量',
+      type: 'warning',
+      suggestion: '弱回调，观察',
+      description: '指标死叉但杀跌动力不足',
+      comboSignal: 'Rule 4'
+    };
+  }
+  // 5. KDJ 高位金叉 + VOL MA 金叉
+  if (isKDJHigh && isKDJPos && isVolPos) {
+    return {
+      label: '高位放量延续',
+      type: 'bullish',
+      suggestion: '强势延续，不要乱空',
+      description: '多头意愿强烈，行情持续走强',
+      comboSignal: 'Rule 5'
+    };
+  }
+  // 6. KDJ 高位金叉 + VOL MA 死叉
+  if (isKDJHigh && isKDJPos && isVolNeg) {
+    return {
+      label: '高位缩量上涨',
+      type: 'warning',
+      suggestion: '缩量上涨，谨慎追多',
+      description: '防范冲高回落风险',
+      comboSignal: 'Rule 6'
+    };
+  }
+  // 7. KDJ 低位死叉 + VOL MA 金叉
+  if (isKDJLow && isKDJNeg && isVolPos) {
+    return {
+      label: '低位放量杀跌',
+      type: 'bearish',
+      suggestion: '放量杀跌，不要抄底',
+      description: '趋势仍向下，抛压尚未出尽',
+      comboSignal: 'Rule 7'
+    };
+  }
+  // 8. KDJ 低位死叉 + VOL MA 死叉
+  if (isKDJLow && isKDJNeg && isVolNeg) {
+    return {
+      label: '低位缩量下跌',
+      type: 'neutral',
+      suggestion: '缩量下跌，不追空',
+      description: '等反转信号出现',
+      comboSignal: 'Rule 8'
+    };
   }
 
-  if (isDeadCross) {
-    if (isUp) return { label: '多头乏力', type: 'warning', description: '量能死叉上涨，涨势不济，警惕假突破' };
-    if (!isUp && !isSideways) return { label: '空头减弱', type: 'neutral', description: '量能死叉下跌，杀跌动力不足，可能止跌' };
-    return { label: '缩量横盘', type: 'neutral', description: '成交降温，市场进入蓄力或观望期' };
-  }
+  // --- Fallback Standard Rules ---
 
-  // 2. High Priority Reversals/Fakeouts
-  if (isHighVol && current.high > recentHigh && current.close <= recentHigh) {
-    return { label: '放量假突破', type: 'warning', description: '诱多风险，冲高回落压力大' };
-  }
-  if (isHighVol && current.low < recentLow && current.close >= recentLow) {
-    return { label: '放量假跌破', type: 'warning', description: '诱空风险，探底回升支撑强' };
-  }
-
-  // 3. Classic Combinations
   if (isHighVol) {
+    if (current.high > recentHigh && current.close <= recentHigh) return { label: '放量假突破', type: 'warning', description: '诱多风险，冲高回落压力大' };
+    if (current.low < recentLow && current.close >= recentLow) return { label: '放量假跌破', type: 'warning', description: '诱空风险，探底回升支撑强' };
     if (isLongUpperShadow) return { label: '冲高回落', type: 'bearish', description: '放量留长上影，上方抛压极重' };
     if (isLongLowerShadow) return { label: '探底回升', type: 'bullish', description: '放量留长下影，下方承接力强' };
     if (isUp) return { label: '放量上涨', type: 'bullish', description: '放量看方向，多头意愿强烈' };
@@ -82,8 +179,8 @@ export function getVolumeAdvice(data: Kline[]): VolumeAdvice | null {
   }
 
   if (isLowVol) {
-    if (isUp) return { label: '缩量上涨', type: 'warning', description: '缩量看没劲，多头跟风不足' };
-    if (!isUp) return { label: '缩量下跌', type: 'neutral', description: '缩量看没劲，空头动能正在衰竭' };
+    if (isUp) return { label: '缩量上涨', type: 'warning', description: '多头跟风不足，上涨质量一般' };
+    return { label: '缩量下跌', type: 'neutral', description: '空头动能不足，抛压减弱' };
   }
 
   return null;

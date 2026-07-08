@@ -72,6 +72,11 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
     });
     candleSeriesRef.current = candleSeries;
 
+    // Set margins for main price scale
+    chart.priceScale('right').applyOptions({
+      scaleMargins: { top: 0.1, bottom: 0.35 },
+    });
+
     const volumeSeries = chart.addHistogramSeries({
       priceFormat: { type: 'volume' },
       priceScaleId: 'volume',
@@ -97,9 +102,14 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
     });
     volMa10Ref.current = volMa10;
 
-    const kSeries = chart.addLineSeries({ color: '#fcd34d', lineWidth: 1, title: 'K' });
-    const dSeries = chart.addLineSeries({ color: '#3b82f6', lineWidth: 1, title: 'D' });
-    const jSeries = chart.addLineSeries({ color: '#ec4899', lineWidth: 1, title: 'J' });
+    const kSeries = chart.addLineSeries({ color: '#fcd34d', lineWidth: 1, title: 'K', priceScaleId: 'kdj' });
+    const dSeries = chart.addLineSeries({ color: '#3b82f6', lineWidth: 1, title: 'D', priceScaleId: 'kdj' });
+    const jSeries = chart.addLineSeries({ color: '#ec4899', lineWidth: 1, title: 'J', priceScaleId: 'kdj' });
+
+    chart.priceScale('kdj').applyOptions({
+      scaleMargins: { top: 0.7, bottom: 0.05 },
+      visible: true,
+    });
 
     kSeriesRef.current = kSeries;
     dSeriesRef.current = dSeries;
@@ -136,11 +146,16 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
     volumeSeriesRef.current.applyOptions({ visible: isKline });
     volMa5Ref.current.applyOptions({ visible: isKline });
     volMa10Ref.current.applyOptions({ visible: isKline });
+    chartRef.current?.priceScale('volume').applyOptions({ visible: isKline });
     
     // KDJ series
     kSeriesRef.current.applyOptions({ visible: isKDJ });
     dSeriesRef.current.applyOptions({ visible: isKDJ });
     jSeriesRef.current.applyOptions({ visible: isKDJ });
+    chartRef.current?.priceScale('kdj').applyOptions({ 
+      visible: isKDJ,
+      scaleMargins: { top: 0.7, bottom: 0.05 }
+    });
 
     if (isKline || isKDJ) {
       const candles: CandlestickData[] = data.map(d => ({
@@ -180,7 +195,9 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
       volumeSeriesRef.current.setData(volumes);
       volMa5Ref.current.setData(ma5);
       volMa10Ref.current.setData(ma10);
-    } else if (kdjData) {
+    } 
+    
+    if (kdjData) {
       kSeriesRef.current.setData(kdjData.k);
       dSeriesRef.current.setData(kdjData.d);
       jSeriesRef.current.setData(kdjData.j);

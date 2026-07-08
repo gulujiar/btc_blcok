@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { TrendingUp, TrendingDown, Info, ShieldCheck, Zap } from 'lucide-react';
 import { PatternMatcher } from '../lib/prediction';
-import { Kline } from '../lib/indicators';
+import { Kline, calculateKDJ } from '../lib/indicators';
 import { getVolumeAdvice } from '../lib/volumeAdvice';
 
 interface PredictionPanelProps {
@@ -25,7 +25,12 @@ export const PredictionPanel: React.FC<PredictionPanelProps> = ({ allKlines, cur
 
   const volAdvice = useMemo(() => {
     const klines = allKlines['1m'] || [];
-    return getVolumeAdvice(klines);
+    if (klines.length === 0) return null;
+    
+    // Calculate KDJ for the 1m timeframe for volume advice
+    const kdj = calculateKDJ(klines);
+    
+    return getVolumeAdvice(klines, kdj);
   }, [allKlines]);
 
   if (!result || result.confidence === 0) {
@@ -144,17 +149,48 @@ export const PredictionPanel: React.FC<PredictionPanelProps> = ({ allKlines, cur
         <motion.div 
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
-          className={`mt-4 p-3 rounded-xl border flex items-start gap-3 bg-white/5 ${
-            volAdvice.type === 'bullish' ? 'border-emerald-500/20 text-emerald-400' : 
-            volAdvice.type === 'bearish' ? 'border-rose-500/20 text-rose-400' : 
-            volAdvice.type === 'warning' ? 'border-amber-500/20 text-amber-400' :
-            'border-zinc-500/20 text-zinc-400'
+          className={`mt-4 p-4 rounded-xl border flex items-start gap-4 transition-colors ${
+            volAdvice.type === 'bullish' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 
+            volAdvice.type === 'bearish' ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : 
+            volAdvice.type === 'warning' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
+            'bg-zinc-500/10 border-zinc-500/20 text-zinc-400'
           }`}
         >
-          <Zap className="w-5 h-5 mt-0.5 shrink-0" />
-          <div className="flex flex-col">
-            <span className="text-xs font-black uppercase tracking-wider">{volAdvice.label}</span>
-            <span className="text-[10px] opacity-70 font-medium leading-tight">{volAdvice.description}</span>
+          <div className={`p-2 rounded-lg ${
+            volAdvice.type === 'bullish' ? 'bg-emerald-500/20' : 
+            volAdvice.type === 'bearish' ? 'bg-rose-500/20' : 
+            volAdvice.type === 'warning' ? 'bg-amber-500/20' :
+            'bg-zinc-500/20'
+          }`}>
+            <Zap className="w-5 h-5 shrink-0" />
+          </div>
+          
+          <div className="flex-1 flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-black uppercase tracking-wider">{volAdvice.label}</span>
+              {volAdvice.comboSignal && (
+                <span className="px-1.5 py-0.5 rounded bg-white/10 text-[7px] font-black uppercase tracking-tighter border border-white/5 opacity-60">
+                  Combo Logic
+                </span>
+              )}
+            </div>
+
+            {volAdvice.suggestion && (
+              <div className="flex items-center">
+                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
+                  volAdvice.type === 'bullish' ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300' : 
+                  volAdvice.type === 'bearish' ? 'bg-rose-500/20 border-rose-500/30 text-rose-300' : 
+                  volAdvice.type === 'warning' ? 'bg-amber-500/20 border-amber-500/30 text-amber-300' :
+                  'bg-zinc-500/20 border-zinc-500/30 text-zinc-300'
+                }`}>
+                  {volAdvice.suggestion}
+                </span>
+              </div>
+            )}
+
+            <p className="text-[10px] opacity-70 font-medium leading-relaxed mt-0.5 italic">
+              {volAdvice.description}
+            </p>
           </div>
         </motion.div>
       )}

@@ -212,7 +212,7 @@ export default function App() {
 
           <div className="flex items-center gap-1.5 md:gap-2">
             <button 
-              onClick={fetchData}
+              onClick={() => fetchData()}
               className="p-1.5 rounded-lg border border-[#333] hover:bg-[#1a1a1a] transition-colors text-gray-500"
               title="刷新"
             >
