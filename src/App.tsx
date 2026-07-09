@@ -289,6 +289,7 @@ export default function App() {
                         <PredictionPanel 
                             allKlines={allTimeframesData} 
                             currentKDJ={currentKDJAll} 
+                            currentTimeframe={timeframe}
                         />
                     </div>
                     <div className="flex-1">
@@ -302,6 +303,7 @@ export default function App() {
                     <PredictionPanel 
                         allKlines={allTimeframesData} 
                         currentKDJ={currentKDJAll} 
+                        currentTimeframe={timeframe}
                     />
                 </div>
                 <motion.div
@@ -326,6 +328,7 @@ export default function App() {
                <PredictionPanel 
                     allKlines={allTimeframesData} 
                     currentKDJ={currentKDJAll} 
+                    currentTimeframe={timeframe}
                 />
                 
                 <div className="bg-[#111] rounded-2xl p-4 border border-white/5">
@@ -353,6 +356,7 @@ export default function App() {
               allKlines={allTimeframesData} 
               currentKDJ={currentKDJAll} 
               isPiP 
+              currentTimeframe={timeframe}
             />
             <div className="flex-1 overflow-hidden">
               <KDJBlockView data={allTimeframesData} isLoading={isLoading} isPiP={true} />

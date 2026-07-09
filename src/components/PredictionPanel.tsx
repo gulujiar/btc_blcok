@@ -10,9 +10,15 @@ interface PredictionPanelProps {
   allKlines: Record<string, Kline[]>;
   currentKDJ: Record<string, { k: number, d: number }>;
   isPiP?: boolean;
+  currentTimeframe?: string;
 }
 
-export const PredictionPanel: React.FC<PredictionPanelProps> = ({ allKlines, currentKDJ, isPiP }) => {
+export const PredictionPanel: React.FC<PredictionPanelProps> = ({ 
+  allKlines, 
+  currentKDJ, 
+  isPiP,
+  currentTimeframe = '1m'
+}) => {
   const matcher = useMemo(() => {
     if (Object.keys(allKlines).length < 5) return null;
     return new PatternMatcher(allKlines);
@@ -24,14 +30,14 @@ export const PredictionPanel: React.FC<PredictionPanelProps> = ({ allKlines, cur
   }, [matcher, currentKDJ]);
 
   const volAdvice = useMemo(() => {
-    const klines = allKlines['1m'] || [];
+    const klines = allKlines[currentTimeframe] || [];
     if (klines.length === 0) return null;
     
-    // Calculate KDJ for the 1m timeframe for volume advice
+    // Calculate KDJ for the current timeframe for volume advice
     const kdj = calculateKDJ(klines);
     
     return getVolumeAdvice(klines, kdj);
-  }, [allKlines]);
+  }, [allKlines, currentTimeframe]);
 
   if (!result || result.confidence === 0) {
     return (
@@ -78,7 +84,7 @@ export const PredictionPanel: React.FC<PredictionPanelProps> = ({ allKlines, cur
         {volAdvice && (
           <div className="flex items-center gap-2 px-1 py-0.5 rounded bg-white/5 border border-white/5">
             <Zap className={`w-3 h-3 ${volAdvice.type === 'bullish' ? 'text-emerald-400' : volAdvice.type === 'bearish' ? 'text-rose-400' : 'text-amber-400'}`} />
-            <span className="text-[8px] font-black text-white/60 uppercase">{volAdvice.label}</span>
+            <span className="text-[8px] font-black text-white/60 uppercase">[{currentTimeframe}] {volAdvice.label}</span>
           </div>
         )}
 
@@ -167,7 +173,10 @@ export const PredictionPanel: React.FC<PredictionPanelProps> = ({ allKlines, cur
           
           <div className="flex-1 flex flex-col gap-1.5">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-black uppercase tracking-wider">{volAdvice.label}</span>
+              <span className="text-[11px] font-black uppercase tracking-wider">
+                <span className="text-[#00ff9d] mr-1.5 font-black">[{currentTimeframe}]</span>
+                {volAdvice.label}
+              </span>
               {volAdvice.comboSignal && (
                 <span className="px-1.5 py-0.5 rounded bg-white/10 text-[7px] font-black uppercase tracking-tighter border border-white/5 opacity-60">
                   Combo Logic
