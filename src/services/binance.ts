@@ -39,17 +39,18 @@ export async function fetchKlines(symbol: string, interval: Timeframe, limit = 2
       
       if (url.includes('bybit')) {
         if (!data.result?.list) continue;
-        return data.result.list.map((k: any) => ({
+        const klines: Kline[] = data.result.list.map((k: any) => ({
           time: Math.floor(parseInt(k[0]) / 1000),
           open: parseFloat(k[1]),
           high: parseFloat(k[2]),
           low: parseFloat(k[3]),
           close: parseFloat(k[4]),
           volume: parseFloat(k[5]),
-        })).reverse();
+        }));
+        return klines.sort((a, b) => a.time - b.time);
       }
       
-      return data.map((k: any) => ({
+      const klines: Kline[] = data.map((k: any) => ({
         time: Math.floor(k[0] / 1000),
         open: parseFloat(k[1]),
         high: parseFloat(k[2]),
@@ -57,6 +58,8 @@ export async function fetchKlines(symbol: string, interval: Timeframe, limit = 2
         close: parseFloat(k[4]),
         volume: parseFloat(k[5]),
       }));
+
+      return klines.sort((a, b) => a.time - b.time);
     } catch (error) {
       // Endpoint failed, clear memory to re-scan if it was our best one
       if (bestEndpoint && url.includes(bestEndpoint.split('/')[2])) {

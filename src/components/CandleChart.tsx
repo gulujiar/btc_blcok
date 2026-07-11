@@ -1,6 +1,6 @@
-import { createChart, IChartApi, ISeriesApi, CandlestickData, HistogramData, LineData } from 'lightweight-charts';
+import { createChart, IChartApi, ISeriesApi, CandlestickData, HistogramData, LineData, SeriesMarker } from 'lightweight-charts';
 import { useEffect, useRef } from 'react';
-import { Kline } from '../lib/indicators';
+import { Kline, calculateLiquiditySwings } from '../lib/indicators';
 
 interface CandleChartProps {
   data: Kline[];
@@ -19,6 +19,7 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
   const kSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
   const dSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
   const jSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+  const liquidityLinesRef = useRef<ISeriesApi<'Line'>[]>([]);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -37,7 +38,7 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
       timeScale: {
         timeVisible: true,
         borderColor: '#222',
-        barSpacing: 12, // Increased spacing
+        barSpacing: 12,
         rightOffset: 15,
         minBarSpacing: 5,
         shiftVisibleRangeOnNewBar: true,
@@ -72,7 +73,6 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
     });
     candleSeriesRef.current = candleSeries;
 
-    // Set margins for main price scale
     chart.priceScale('right').applyOptions({
       scaleMargins: { top: 0.1, bottom: 0.35 },
     });
@@ -128,31 +128,32 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
 
     return () => {
       resizeObserver.disconnect();
-      chart.remove();
+      if (chartRef.current) {
+        chartRef.current.remove();
+        chartRef.current = null;
+      }
     };
   }, []);
 
   useEffect(() => {
-    if (!candleSeriesRef.current || !volumeSeriesRef.current || !volMa5Ref.current || !volMa10Ref.current || !kSeriesRef.current || !dSeriesRef.current || !jSeriesRef.current) return;
+    try {
+      if (!candleSeriesRef.current || !volumeSeriesRef.current || !volMa5Ref.current || !volMa10Ref.current || !kSeriesRef.current || !dSeriesRef.current || !jSeriesRef.current || !chartRef.current) return;
 
     // Toggle visibility
     const isKline = mode === 'kline';
     const isKDJ = mode === 'kdj';
 
-    // Candle series is visible in both modes
     candleSeriesRef.current.applyOptions({ visible: true });
     
-    // Volume is only for kline
     volumeSeriesRef.current.applyOptions({ visible: isKline });
     volMa5Ref.current.applyOptions({ visible: isKline });
     volMa10Ref.current.applyOptions({ visible: isKline });
-    chartRef.current?.priceScale('volume').applyOptions({ visible: isKline });
+    chartRef.current.priceScale('volume').applyOptions({ visible: isKline });
     
-    // KDJ series
     kSeriesRef.current.applyOptions({ visible: isKDJ });
     dSeriesRef.current.applyOptions({ visible: isKDJ });
     jSeriesRef.current.applyOptions({ visible: isKDJ });
-    chartRef.current?.priceScale('kdj').applyOptions({ 
+    chartRef.current.priceScale('kdj').applyOptions({ 
       visible: isKDJ,
       scaleMargins: { top: 0.7, bottom: 0.05 }
     });
@@ -172,18 +173,15 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
         color: d.close >= d.open ? 'rgba(0, 255, 136, 0.3)' : 'rgba(255, 71, 87, 0.3)',
       }));
 
-      // Calculate Volume MAs
       const ma5: LineData[] = [];
       const ma10: LineData[] = [];
 
       for (let i = 0; i < data.length; i++) {
-        // MA5
         if (i >= 4) {
           let sum = 0;
           for (let j = 0; j < 5; j++) sum += data[i - j].volume;
           ma5.push({ time: data[i].time as any, value: sum / 5 });
         }
-        // MA10
         if (i >= 9) {
           let sum = 0;
           for (let j = 0; j < 10; j++) sum += data[i - j].volume;
@@ -195,9 +193,93 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
       volumeSeriesRef.current.setData(volumes);
       volMa5Ref.current.setData(ma5);
       volMa10Ref.current.setData(ma10);
+
+      // Liquidity Swings
+      if (data.length > 10) {
+        const swings = calculateLiquiditySwings(data, 5);
+        const markers: SeriesMarker<any>[] = [];
+        
+        // Clear old lines
+        liquidityLinesRef.current.forEach(line => {
+          try {
+            if (chartRef.current) chartRef.current.removeSeries(line);
+          } catch (e) {
+            console.warn('Error removing series:', e);
+          }
+        });
+        liquidityLinesRef.current = [];
+
+        swings.forEach((swing) => {
+          // Markers for Pivot High/Low
+          markers.push({
+            time: swing.time as any,
+            position: swing.type === 'high' ? 'aboveBar' : 'belowBar',
+            color: swing.type === 'high' ? '#ff4d4d' : '#00ff9d',
+            shape: swing.type === 'high' ? 'arrowDown' : 'arrowUp',
+            text: swing.type === 'high' ? 'SH' : 'SL',
+            size: 0.5
+          });
+
+          // Marker for Sweeps/BOS/CHoCH
+          if (swing.isSwept && swing.sweptTime) {
+            let label = 'Grab';
+            let color = '#ffffff';
+            if (swing.isBOS) {
+              label = 'BOS';
+              color = swing.type === 'high' ? '#00ff9d' : '#ff4d4d';
+            } else if (swing.isCHoCH) {
+              label = 'CHoCH';
+              color = '#fcd34d';
+            }
+
+            markers.push({
+              time: swing.sweptTime as any,
+              position: swing.type === 'high' ? 'aboveBar' : 'belowBar',
+              color: color,
+              shape: 'circle',
+              text: label,
+              size: 0.5
+            });
+          }
+
+          // Draw horizontal line from pivot until swept or end
+          if (!swing.isSwept || (swing.isSwept && swing.sweptTime)) {
+            const lastTime = data[data.length - 1].time;
+            const endTime = swing.isSwept ? (swing.sweptTime as number) : lastTime;
+            
+            // Safety check for time order
+            if (endTime >= swing.time && chartRef.current) {
+              try {
+                const lineSeries = chartRef.current.addLineSeries({
+                  color: swing.type === 'high' ? 'rgba(255, 77, 77, 0.3)' : 'rgba(0, 255, 157, 0.3)',
+                  lineWidth: 1,
+                  lineStyle: 2,
+                  lastValueVisible: false,
+                  priceLineVisible: false,
+                });
+                
+                const lineData: LineData[] = [
+                  { time: swing.time as any, value: swing.price },
+                  { time: endTime as any, value: swing.price }
+                ];
+                lineSeries.setData(lineData);
+                liquidityLinesRef.current.push(lineSeries);
+              } catch (e) {
+                console.warn('Error adding line series:', e);
+              }
+            }
+          }
+        });
+
+        // Markers MUST be sorted by time for lightweight-charts
+        markers.sort((a, b) => (a.time as number) - (b.time as number));
+        if (candleSeriesRef.current) {
+          candleSeriesRef.current.setMarkers(markers);
+        }
+      }
     } 
     
-    if (kdjData) {
+    if (kdjData && kSeriesRef.current && dSeriesRef.current && jSeriesRef.current) {
       kSeriesRef.current.setData(kdjData.k);
       dSeriesRef.current.setData(kdjData.d);
       jSeriesRef.current.setData(kdjData.j);
@@ -206,11 +288,9 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
     if (data.length > 0 && !isLoading) {
       const timeScale = chartRef.current?.timeScale();
       if (timeScale) {
-        // Calculate appropriate bar count based on width
         const width = chartContainerRef.current?.clientWidth || 800;
-        const visibleBars = Math.floor(width / 10); // Standard density: 1 bar every 10px
+        const visibleBars = Math.floor(width / 10);
         
-        // Use requestAnimationFrame to ensure the chart has finished internal layout
         requestAnimationFrame(() => {
           timeScale.setVisibleLogicalRange({
             from: data.length - Math.min(data.length, visibleBars),
@@ -218,6 +298,9 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
           });
         });
       }
+    }
+    } catch (e) {
+      console.error('Error updating chart data:', e);
     }
   }, [data, isLoading, mode, kdjData]);
 

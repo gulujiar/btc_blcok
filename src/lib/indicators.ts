@@ -91,3 +91,107 @@ export function calculateKDJ(data: Kline[], n = 9, m1 = 3, m2 = 3) {
     j: jArr.map((v, i) => ({ time: data[i].time as any, value: v }))
   };
 }
+
+export interface LiquiditySwing {
+  time: number;
+  price: number;
+  type: 'high' | 'low';
+  isSwept: boolean;
+  sweptTime?: number;
+  isBOS?: boolean;
+  isCHoCH?: boolean;
+}
+
+export function calculateLiquiditySwings(data: Kline[], length = 5) {
+  const swings: LiquiditySwing[] = [];
+  
+  for (let i = length; i < data.length - length; i++) {
+    // Pivot High
+    let isHigh = true;
+    for (let j = 1; j <= length; j++) {
+      if (data[i].high < data[i - j].high || data[i].high < data[i + j].high) {
+        isHigh = false;
+        break;
+      }
+    }
+    
+    if (isHigh) {
+      swings.push({
+        time: data[i].time,
+        price: data[i].high,
+        type: 'high',
+        isSwept: false
+      });
+    }
+
+    // Pivot Low
+    let isLow = true;
+    for (let j = 1; j <= length; j++) {
+      if (data[i].low > data[i - j].low || data[i].low > data[i + j].low) {
+        isLow = false;
+        break;
+      }
+    }
+    
+    if (isLow) {
+      swings.push({
+        time: data[i].time,
+        price: data[i].low,
+        type: 'low',
+        isSwept: false
+      });
+    }
+  }
+
+  // Determine if swept or BOS/CHoCH
+  let lastTrend: 'up' | 'down' | null = null;
+
+  for (const swing of swings) {
+    const startIndex = data.findIndex(d => d.time === swing.time);
+    if (startIndex === -1) continue;
+
+    for (let i = startIndex + 1; i < data.length; i++) {
+      if (swing.type === 'high') {
+        if (data[i].close > swing.price) {
+          // Closed above: BOS or CHoCH
+          if (lastTrend === 'down') {
+            swing.isCHoCH = true;
+            lastTrend = 'up';
+          } else {
+            swing.isBOS = true;
+            lastTrend = 'up';
+          }
+          swing.isSwept = true;
+          swing.sweptTime = data[i].time;
+          break;
+        } else if (data[i].high > swing.price) {
+          // Wicked above: Sweep/Grab
+          swing.isSwept = true;
+          swing.sweptTime = data[i].time;
+          break;
+        }
+      } else {
+        if (data[i].close < swing.price) {
+          // Closed below: BOS or CHoCH
+          if (lastTrend === 'up') {
+            swing.isCHoCH = true;
+            lastTrend = 'down';
+          } else {
+            swing.isBOS = true;
+            lastTrend = 'down';
+          }
+          swing.isSwept = true;
+          swing.sweptTime = data[i].time;
+          break;
+        } else if (data[i].low < swing.price) {
+          // Wicked below: Sweep/Grab
+          swing.isSwept = true;
+          swing.sweptTime = data[i].time;
+          break;
+        }
+      }
+    }
+  }
+
+  return swings;
+}
