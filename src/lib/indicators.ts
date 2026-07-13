@@ -96,6 +96,7 @@ export interface LiquiditySwing {
   time: number;
   price: number;
   type: 'high' | 'low';
+  label: 'HH' | 'LH' | 'LL' | 'HL';
   isSwept: boolean;
   sweptTime?: number;
   isBOS?: boolean;
@@ -105,6 +106,9 @@ export interface LiquiditySwing {
 export function calculateLiquiditySwings(data: Kline[], length = 5) {
   const swings: LiquiditySwing[] = [];
   
+  let lastHigh: number | null = null;
+  let lastLow: number | null = null;
+
   for (let i = length; i < data.length - length; i++) {
     // Pivot High
     let isHigh = true;
@@ -116,10 +120,18 @@ export function calculateLiquiditySwings(data: Kline[], length = 5) {
     }
     
     if (isHigh) {
+      const price = data[i].high;
+      let label: 'HH' | 'LH' = 'HH';
+      if (lastHigh !== null) {
+        label = price > lastHigh ? 'HH' : 'LH';
+      }
+      lastHigh = price;
+
       swings.push({
         time: data[i].time,
-        price: data[i].high,
+        price: price,
         type: 'high',
+        label: label,
         isSwept: false
       });
     }
@@ -134,14 +146,25 @@ export function calculateLiquiditySwings(data: Kline[], length = 5) {
     }
     
     if (isLow) {
+      const price = data[i].low;
+      let label: 'LL' | 'HL' = 'LL';
+      if (lastLow !== null) {
+        label = price < lastLow ? 'LL' : 'HL';
+      }
+      lastLow = price;
+
       swings.push({
         time: data[i].time,
-        price: data[i].low,
+        price: price,
         type: 'low',
+        label: label,
         isSwept: false
       });
     }
   }
+
+  // Sort by time to process sequence
+  swings.sort((a, b) => a.time - b.time);
 
   // Determine if swept or BOS/CHoCH
   let lastTrend: 'up' | 'down' | null = null;
@@ -153,7 +176,6 @@ export function calculateLiquiditySwings(data: Kline[], length = 5) {
     for (let i = startIndex + 1; i < data.length; i++) {
       if (swing.type === 'high') {
         if (data[i].close > swing.price) {
-          // Closed above: BOS or CHoCH
           if (lastTrend === 'down') {
             swing.isCHoCH = true;
             lastTrend = 'up';
@@ -165,14 +187,12 @@ export function calculateLiquiditySwings(data: Kline[], length = 5) {
           swing.sweptTime = data[i].time;
           break;
         } else if (data[i].high > swing.price) {
-          // Wicked above: Sweep/Grab
           swing.isSwept = true;
           swing.sweptTime = data[i].time;
           break;
         }
       } else {
         if (data[i].close < swing.price) {
-          // Closed below: BOS or CHoCH
           if (lastTrend === 'up') {
             swing.isCHoCH = true;
             lastTrend = 'down';
@@ -184,7 +204,6 @@ export function calculateLiquiditySwings(data: Kline[], length = 5) {
           swing.sweptTime = data[i].time;
           break;
         } else if (data[i].low < swing.price) {
-          // Wicked below: Sweep/Grab
           swing.isSwept = true;
           swing.sweptTime = data[i].time;
           break;

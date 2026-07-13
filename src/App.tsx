@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { RefreshCw, BarChart2, Activity, ExternalLink } from 'lucide-react';
+import { RefreshCw, BarChart2, Activity, ExternalLink, Play, Pause, X, SkipForward, Rewind, FastForward, History } from 'lucide-react';
 import { motion } from 'motion/react';
 import CandleChart from './components/CandleChart';
 import KDJBlockView from './components/KDJBlockView';
@@ -26,12 +26,67 @@ export default function App() {
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
   const pipContainerRef = useRef<HTMLDivElement | null>(null);
 
+  // Replay State
+  const [replayMode, setReplayMode] = useState<{
+    active: boolean;
+    currentIndex: number;
+    isPlaying: boolean;
+    speed: number; // ms per step
+  }>({
+    active: false,
+    currentIndex: 0,
+    isPlaying: false,
+    speed: 500,
+  });
+
+  const replayTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Handle Replay Playback
+  useEffect(() => {
+    if (replayMode.active && replayMode.isPlaying) {
+      replayTimerRef.current = setInterval(() => {
+        setReplayMode(prev => {
+          const nextIndex = prev.currentIndex + 1;
+          const maxIndex = (allTimeframesData[timeframe]?.length || 0) - 1;
+          if (nextIndex >= maxIndex) {
+            if (replayTimerRef.current) clearInterval(replayTimerRef.current);
+            return { ...prev, isPlaying: false };
+          }
+          return { ...prev, currentIndex: nextIndex };
+        });
+      }, replayMode.speed);
+    } else {
+      if (replayTimerRef.current) clearInterval(replayTimerRef.current);
+    }
+    return () => {
+      if (replayTimerRef.current) clearInterval(replayTimerRef.current);
+    };
+  }, [replayMode.active, replayMode.isPlaying, replayMode.speed, timeframe, allTimeframesData]);
+
+  // Derived Data for Display (Synchronized across all timeframes based on current replay time)
+  const displayAllData = useMemo(() => {
+    if (!replayMode.active) return allTimeframesData;
+    const fullData = allTimeframesData[timeframe] || [];
+    if (replayMode.currentIndex >= fullData.length) return allTimeframesData;
+    
+    const currentTime = fullData[replayMode.currentIndex].time;
+    const res: Record<Timeframe, Kline[]> = {} as any;
+    (Object.entries(allTimeframesData) as [Timeframe, Kline[]][]).forEach(([tf, klines]) => {
+      res[tf] = klines.filter(k => k.time <= currentTime);
+    });
+    return res;
+  }, [allTimeframesData, timeframe, replayMode.active, replayMode.currentIndex]);
+
+  const displayData = useMemo(() => {
+    return displayAllData[timeframe] || [];
+  }, [displayAllData, timeframe]);
+
   // Calculate current KDJ for all timeframes for prediction
   const currentKDJAll = useMemo(() => {
     const results: Record<string, { k: number, d: number }> = {};
-    (Object.entries(allTimeframesData) as [Timeframe, Kline[]][]).forEach(([tf, klines]) => {
-      if (klines && klines.length >= 9) {
-        const kdj = calculateKDJ(klines);
+    (Object.entries(displayAllData) as [Timeframe, Kline[]][]).forEach(([tf, dataToUse]) => {
+      if (dataToUse && dataToUse.length >= 9) {
+        const kdj = calculateKDJ(dataToUse);
         if (kdj.k.length > 0) {
           results[tf] = {
             k: kdj.k[kdj.k.length - 1].value,
@@ -41,7 +96,7 @@ export default function App() {
       }
     });
     return results;
-  }, [allTimeframesData]);
+  }, [displayAllData]);
 
   const togglePiP = useCallback(async () => {
     if (pipWindow) {
@@ -156,17 +211,72 @@ export default function App() {
     return () => clearInterval(interval);
   }, [fetchAllData]);
 
-  const currentPrice = data.length > 0 ? data[data.length - 1].close : 0;
-  const priceChange = data.length > 1 ? currentPrice - data[data.length - 2].close : 0;
+  const currentPrice = displayData.length > 0 ? displayData[displayData.length - 1].close : 0;
+  const priceChange = displayData.length > 1 ? currentPrice - displayData[displayData.length - 2].close : 0;
   const isPositive = priceChange >= 0;
 
   const kdjData = useMemo(() => {
-    if (data.length === 0) return undefined;
-    return calculateKDJ(data);
-  }, [data]);
+    if (displayData.length === 0) return undefined;
+    return calculateKDJ(displayData);
+  }, [displayData]);
+
+  const handleChartClick = useCallback((time: number) => {
+    if (replayMode.active && !replayMode.isPlaying) {
+      const fullData = allTimeframesData[timeframe] || [];
+      const index = fullData.findIndex(d => d.time === time);
+      if (index !== -1) {
+        setReplayMode(prev => ({ ...prev, currentIndex: index }));
+      }
+    }
+  }, [replayMode.active, replayMode.isPlaying, allTimeframesData, timeframe]);
 
   return (
     <div className="h-screen bg-[#0d0d0d] text-[#e0e0e0] font-sans selection:bg-emerald-500/30 flex flex-col overflow-hidden">
+      {replayMode.active && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#111] border border-white/10 rounded-2xl shadow-2xl p-3 flex items-center gap-4 backdrop-blur-md">
+          <div className="flex items-center gap-1 border-r border-white/5 pr-4 mr-2">
+            <button 
+              onClick={() => setReplayMode(p => ({ ...p, isPlaying: !p.isPlaying }))}
+              className="p-2 hover:bg-white/5 rounded-xl text-[#00ff9d] transition-colors"
+            >
+              {replayMode.isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current" />}
+            </button>
+            <button 
+              onClick={() => setReplayMode(p => ({ ...p, currentIndex: Math.min(p.currentIndex + 1, (allTimeframesData[timeframe]?.length || 0) - 1) }))}
+              className="p-2 hover:bg-white/5 rounded-xl text-zinc-400 transition-colors"
+            >
+              <SkipForward className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-3 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
+            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">速度</span>
+            <div className="flex gap-1">
+              {[2000, 1000, 500, 200, 100].map(s => (
+                <button
+                  key={s}
+                  onClick={() => setReplayMode(p => ({ ...p, speed: s }))}
+                  className={`px-2 py-1 rounded-md text-[10px] font-mono transition-all ${replayMode.speed === s ? 'bg-emerald-500 text-black font-bold' : 'text-zinc-500 hover:text-zinc-300'}`}
+                >
+                  {s >= 1000 ? `${s/1000}s` : `${s}ms`}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="text-[10px] font-mono text-zinc-400 px-2 min-w-[100px] text-center">
+            {replayMode.currentIndex + 1} / {allTimeframesData[timeframe]?.length || 0}
+          </div>
+
+          <button 
+            onClick={() => setReplayMode(prev => ({ ...prev, active: false, isPlaying: false }))}
+            className="p-2 hover:bg-rose-500/20 hover:text-rose-400 rounded-xl text-zinc-400 transition-all border border-transparent hover:border-rose-500/30"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+
       <header className="min-h-[4rem] py-2 md:py-0 border-b border-[#222] bg-[#111] sticky top-0 z-20 flex flex-wrap items-center justify-between px-4 md:px-6 gap-y-3">
         <div className="flex items-center gap-4 md:gap-8">
           <div className="flex items-center gap-2 md:gap-3">
@@ -211,6 +321,29 @@ export default function App() {
           </nav>
 
           <div className="flex items-center gap-1.5 md:gap-2">
+            <button
+              onClick={() => {
+                if (!replayMode.active) {
+                  const currentData = allTimeframesData[timeframe] || [];
+                  setReplayMode({
+                    active: true,
+                    currentIndex: Math.max(0, currentData.length - 50),
+                    isPlaying: false,
+                    speed: 500
+                  });
+                } else {
+                  setReplayMode(p => ({ ...p, active: false }));
+                }
+              }}
+              className={`p-1.5 rounded-lg border transition-all flex items-center gap-1.5 ${
+                replayMode.active ? 'border-emerald-500 bg-emerald-500/10 text-emerald-500' : 'border-[#333] hover:bg-[#1a1a1a] text-gray-500'
+              }`}
+              title="时间回放"
+            >
+              <History className="w-3.5 h-3.5" />
+              <span className="text-[9px] font-bold hidden lg:inline">回放</span>
+            </button>
+
             <button 
               onClick={() => fetchData()}
               className="p-1.5 rounded-lg border border-[#333] hover:bg-[#1a1a1a] transition-colors text-gray-500"
@@ -287,13 +420,14 @@ export default function App() {
                 <div className="flex-1 flex flex-col p-4 gap-4 overflow-auto">
                     <div className="sticky top-0 z-10 drop-shadow-xl flex-shrink-0">
                         <PredictionPanel 
-                            allKlines={allTimeframesData} 
+                            allKlines={displayAllData} 
                             currentKDJ={currentKDJAll} 
                             currentTimeframe={timeframe}
+                            isReplay={replayMode.active}
                         />
                     </div>
                     <div className="flex-1">
-                        <KDJBlockView data={allTimeframesData} isLoading={isLoading} />
+                        <KDJBlockView data={displayAllData} isLoading={isLoading} />
                     </div>
                 </div>
               )
@@ -301,9 +435,10 @@ export default function App() {
               <div className="p-4 flex-1 flex flex-col gap-4 min-h-0">
                 <div className="lg:hidden flex-shrink-0">
                     <PredictionPanel 
-                        allKlines={allTimeframesData} 
+                        allKlines={displayAllData} 
                         currentKDJ={currentKDJAll} 
                         currentTimeframe={timeframe}
+                        isReplay={replayMode.active}
                     />
                 </div>
                 <motion.div
@@ -313,10 +448,11 @@ export default function App() {
                   className="flex-1 min-h-0"
                 >
                   <CandleChart 
-                    data={data} 
+                    data={displayData} 
                     isLoading={isLoading} 
                     mode={mode as any}
                     kdjData={kdjData}
+                    onChartClick={handleChartClick}
                   />
                 </motion.div>
               </div>
@@ -326,9 +462,10 @@ export default function App() {
           {mode !== 'blocks' && (
             <aside className="hidden lg:flex w-80 border-l border-[#222] bg-[#0d0d0d] p-4 flex-col gap-4 overflow-y-auto">
                <PredictionPanel 
-                    allKlines={allTimeframesData} 
+                    allKlines={displayAllData} 
                     currentKDJ={currentKDJAll} 
                     currentTimeframe={timeframe}
+                    isReplay={replayMode.active}
                 />
                 
                 <div className="bg-[#111] rounded-2xl p-4 border border-white/5">
@@ -353,13 +490,14 @@ export default function App() {
         {pipWindow && pipContainerRef.current && createPortal(
           <div className="h-screen w-screen bg-[#0d0d0d] overflow-hidden flex flex-col">
             <PredictionPanel 
-              allKlines={allTimeframesData} 
+              allKlines={displayAllData} 
               currentKDJ={currentKDJAll} 
               isPiP 
               currentTimeframe={timeframe}
+              isReplay={replayMode.active}
             />
             <div className="flex-1 overflow-hidden">
-              <KDJBlockView data={allTimeframesData} isLoading={isLoading} isPiP={true} />
+              <KDJBlockView data={displayAllData} isLoading={isLoading} isPiP={true} />
             </div>
           </div>,
           pipContainerRef.current

@@ -7,9 +7,10 @@ interface CandleChartProps {
   isLoading: boolean;
   mode: 'kline' | 'kdj';
   kdjData?: { k: LineData[]; d: LineData[]; j: LineData[] };
+  onChartClick?: (time: number) => void;
 }
 
-export default function CandleChart({ data, isLoading, mode, kdjData }: CandleChartProps) {
+export default function CandleChart({ data, isLoading, mode, kdjData, onChartClick }: CandleChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
@@ -20,6 +21,8 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
   const dSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
   const jSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
   const liquidityLinesRef = useRef<ISeriesApi<'Line'>[]>([]);
+  const zigzagSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+  const trendBgSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -54,6 +57,12 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
       },
       handleScroll: true,
       handleScale: true,
+    });
+
+    chart.subscribeClick((param) => {
+      if (param.time && onChartClick) {
+        onChartClick(param.time as number);
+      }
     });
 
     chartRef.current = chart;
@@ -114,6 +123,27 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
     kSeriesRef.current = kSeries;
     dSeriesRef.current = dSeries;
     jSeriesRef.current = jSeries;
+
+    const zigzagSeries = chart.addLineSeries({
+      color: 'rgba(255, 255, 255, 0.4)',
+      lineWidth: 1,
+      lineStyle: 0,
+      lastValueVisible: false,
+      priceLineVisible: false,
+      crosshairMarkerVisible: false,
+    });
+    zigzagSeriesRef.current = zigzagSeries;
+
+    const trendBgSeries = chart.addHistogramSeries({
+      priceScaleId: 'left',
+      lastValueVisible: false,
+      priceLineVisible: false,
+    });
+    trendBgSeriesRef.current = trendBgSeries;
+
+    chart.priceScale('left').applyOptions({
+      visible: false,
+    });
 
     const handleResize = () => {
       if (!chartContainerRef.current || !chartRef.current) return;
@@ -198,6 +228,8 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
       if (data.length > 10) {
         const swings = calculateLiquiditySwings(data, 5);
         const markers: SeriesMarker<any>[] = [];
+        const zigzagData: LineData[] = [];
+        const trendBgData: HistogramData[] = [];
         
         // Clear old lines
         liquidityLinesRef.current.forEach(line => {
@@ -209,15 +241,20 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
         });
         liquidityLinesRef.current = [];
 
-        swings.forEach((swing) => {
+        let currentTrend: 'up' | 'down' | null = null;
+
+        swings.forEach((swing, idx) => {
+          // ZigZag Data
+          zigzagData.push({ time: swing.time as any, value: swing.price });
+
           // Markers for Pivot High/Low
           markers.push({
             time: swing.time as any,
             position: swing.type === 'high' ? 'aboveBar' : 'belowBar',
             color: swing.type === 'high' ? '#ff4d4d' : '#00ff9d',
             shape: swing.type === 'high' ? 'arrowDown' : 'arrowUp',
-            text: swing.type === 'high' ? 'SH' : 'SL',
-            size: 0.5
+            text: swing.label,
+            size: 0.8
           });
 
           // Marker for Sweeps/BOS/CHoCH
@@ -227,9 +264,11 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
             if (swing.isBOS) {
               label = 'BOS';
               color = swing.type === 'high' ? '#00ff9d' : '#ff4d4d';
+              currentTrend = swing.type === 'high' ? 'up' : 'down';
             } else if (swing.isCHoCH) {
               label = 'CHoCH';
               color = '#fcd34d';
+              currentTrend = swing.type === 'high' ? 'up' : 'down';
             }
 
             markers.push({
@@ -247,11 +286,10 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
             const lastTime = data[data.length - 1].time;
             const endTime = swing.isSwept ? (swing.sweptTime as number) : lastTime;
             
-            // Safety check for time order
             if (endTime >= swing.time && chartRef.current) {
               try {
                 const lineSeries = chartRef.current.addLineSeries({
-                  color: swing.type === 'high' ? 'rgba(255, 77, 77, 0.3)' : 'rgba(0, 255, 157, 0.3)',
+                  color: swing.type === 'high' ? 'rgba(255, 77, 77, 0.2)' : 'rgba(0, 255, 157, 0.2)',
                   lineWidth: 1,
                   lineStyle: 2,
                   lastValueVisible: false,
@@ -270,6 +308,36 @@ export default function CandleChart({ data, isLoading, mode, kdjData }: CandleCh
             }
           }
         });
+
+        // Set ZigZag data
+        if (zigzagSeriesRef.current) {
+          zigzagSeriesRef.current.setData(zigzagData);
+        }
+
+        // Generate trend background data
+        // We fill every candle with a value (e.g., 1) and color it based on current trend
+        let activeTrend: 'up' | 'down' | null = null;
+        const swingTimes = swings.map(s => s.time);
+        
+        data.forEach(d => {
+          // Check if trend changes at this candle
+          const swingAtTime = swings.find(s => s.sweptTime === d.time && (s.isBOS || s.isCHoCH));
+          if (swingAtTime) {
+            activeTrend = swingAtTime.type === 'high' ? 'up' : 'down';
+          }
+
+          if (activeTrend) {
+            trendBgData.push({
+              time: d.time as any,
+              value: 1000000, // Large value to fill background
+              color: activeTrend === 'up' ? 'rgba(0, 255, 157, 0.05)' : 'rgba(255, 77, 77, 0.05)'
+            });
+          }
+        });
+
+        if (trendBgSeriesRef.current) {
+          trendBgSeriesRef.current.setData(trendBgData);
+        }
 
         // Markers MUST be sorted by time for lightweight-charts
         markers.sort((a, b) => (a.time as number) - (b.time as number));

@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { TrendingUp, TrendingDown, Info, ShieldCheck, Zap } from 'lucide-react';
+import { TrendingUp, TrendingDown, Info, ShieldCheck, Zap, History } from 'lucide-react';
 import { PatternMatcher } from '../lib/prediction';
 import { Kline, calculateKDJ } from '../lib/indicators';
 import { getVolumeAdvice } from '../lib/volumeAdvice';
@@ -11,13 +11,15 @@ interface PredictionPanelProps {
   currentKDJ: Record<string, { k: number, d: number }>;
   isPiP?: boolean;
   currentTimeframe?: string;
+  isReplay?: boolean;
 }
 
 export const PredictionPanel: React.FC<PredictionPanelProps> = ({ 
   allKlines, 
   currentKDJ, 
   isPiP,
-  currentTimeframe = '1m'
+  currentTimeframe = '1m',
+  isReplay = false
 }) => {
   const matcher = useMemo(() => {
     if (Object.keys(allKlines).length < 5) return null;
@@ -123,6 +125,12 @@ export const PredictionPanel: React.FC<PredictionPanelProps> = ({
           <span className="text-[8px] lg:text-[10px] font-black uppercase tracking-[0.1em] lg:tracking-[0.2em] text-white/40">最优历史镜像模式 (12H)</span>
         </div>
         <div className="flex items-center gap-1 bg-white/5 px-1.5 lg:px-2 py-0.5 rounded-full border border-white/5">
+          {isReplay && (
+            <div className="flex items-center gap-1 mr-2 px-1.5 py-0.5 rounded bg-blue-500/20 border border-blue-500/30">
+              <History className="w-2.5 h-2.5 text-blue-400" />
+              <span className="text-[7px] font-bold text-blue-400">REPLAY</span>
+            </div>
+          )}
           <div className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse"></div>
           <span className="text-[7px] lg:text-[8px] font-mono text-white/30">MATCH FOUND</span>
         </div>
