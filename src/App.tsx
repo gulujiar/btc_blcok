@@ -233,30 +233,30 @@ export default function App() {
   return (
     <div className="h-screen bg-[#0d0d0d] text-[#e0e0e0] font-sans selection:bg-emerald-500/30 flex flex-col overflow-hidden">
       {replayMode.active && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#111] border border-white/10 rounded-2xl shadow-2xl p-3 flex items-center gap-4 backdrop-blur-md">
-          <div className="flex items-center gap-1 border-r border-white/5 pr-4 mr-2">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#111]/90 border border-white/10 rounded-2xl shadow-2xl p-2 md:p-3 flex flex-wrap md:flex-nowrap items-center justify-center gap-2 md:gap-4 backdrop-blur-md w-[92%] md:w-auto max-w-md md:max-w-none">
+          <div className="flex items-center gap-0.5 md:gap-1 border-r border-white/5 pr-2 md:pr-4">
             <button 
               onClick={() => setReplayMode(p => ({ ...p, isPlaying: !p.isPlaying }))}
-              className="p-2 hover:bg-white/5 rounded-xl text-[#00ff9d] transition-colors"
+              className="p-1.5 md:p-2 hover:bg-white/5 rounded-xl text-[#00ff9d] transition-colors"
             >
-              {replayMode.isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current" />}
+              {replayMode.isPlaying ? <Pause className="w-4 h-4 md:w-5 md:h-5 fill-current" /> : <Play className="w-4 h-4 md:w-5 md:h-5 fill-current" />}
             </button>
             <button 
               onClick={() => setReplayMode(p => ({ ...p, currentIndex: Math.min(p.currentIndex + 1, (allTimeframesData[timeframe]?.length || 0) - 1) }))}
-              className="p-2 hover:bg-white/5 rounded-xl text-zinc-400 transition-colors"
+              className="p-1.5 md:p-2 hover:bg-white/5 rounded-xl text-zinc-400 transition-colors"
             >
-              <SkipForward className="w-5 h-5" />
+              <SkipForward className="w-4 h-4 md:w-5 md:h-5" />
             </button>
           </div>
 
-          <div className="flex items-center gap-3 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
-            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">速度</span>
-            <div className="flex gap-1">
+          <div className="flex items-center gap-2 md:gap-3 bg-white/5 px-2 md:px-3 py-1 md:py-1.5 rounded-xl border border-white/5">
+            <span className="text-[8px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest hidden xs:inline">速度</span>
+            <div className="flex gap-0.5 md:gap-1">
               {[2000, 1000, 500, 200, 100].map(s => (
                 <button
                   key={s}
                   onClick={() => setReplayMode(p => ({ ...p, speed: s }))}
-                  className={`px-2 py-1 rounded-md text-[10px] font-mono transition-all ${replayMode.speed === s ? 'bg-emerald-500 text-black font-bold' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  className={`px-1.5 md:px-2 py-0.5 md:py-1 rounded-md text-[8px] md:text-[10px] font-mono transition-all ${replayMode.speed === s ? 'bg-emerald-500 text-black font-bold' : 'text-zinc-500 hover:text-zinc-300'}`}
                 >
                   {s >= 1000 ? `${s/1000}s` : `${s}ms`}
                 </button>
@@ -264,16 +264,18 @@ export default function App() {
             </div>
           </div>
 
-          <div className="text-[10px] font-mono text-zinc-400 px-2 min-w-[100px] text-center">
-            {replayMode.currentIndex + 1} / {allTimeframesData[timeframe]?.length || 0}
-          </div>
+          <div className="flex items-center gap-2 flex-1 md:flex-none justify-center">
+            <div className="text-[8px] md:text-[10px] font-mono text-zinc-400 px-1 md:px-2 min-w-[70px] md:min-w-[100px] text-center">
+              {replayMode.currentIndex + 1} / {allTimeframesData[timeframe]?.length || 0}
+            </div>
 
-          <button 
-            onClick={() => setReplayMode(prev => ({ ...prev, active: false, isPlaying: false }))}
-            className="p-2 hover:bg-rose-500/20 hover:text-rose-400 rounded-xl text-zinc-400 transition-all border border-transparent hover:border-rose-500/30"
-          >
-            <X className="w-5 h-5" />
-          </button>
+            <button 
+              onClick={() => setReplayMode(prev => ({ ...prev, active: false, isPlaying: false }))}
+              className="p-1.5 md:p-2 hover:bg-rose-500/20 hover:text-rose-400 rounded-xl text-zinc-400 transition-all border border-transparent hover:border-rose-500/30"
+            >
+              <X className="w-4 h-4 md:w-5 md:h-5" />
+            </button>
+          </div>
         </div>
       )}
 
