@@ -1,6 +1,6 @@
 import { createChart, IChartApi, ISeriesApi, CandlestickData, HistogramData, LineData, SeriesMarker } from 'lightweight-charts';
 import { useEffect, useRef } from 'react';
-import { Kline, calculateLiquiditySwings } from '../lib/indicators';
+import { Kline, calculateLiquiditySwings, CustomIndicator } from '../lib/indicators';
 
 interface CandleChartProps {
   data: Kline[];
@@ -8,9 +8,10 @@ interface CandleChartProps {
   mode: 'kline' | 'kdj';
   kdjData?: { k: LineData[]; d: LineData[]; j: LineData[] };
   onChartClick?: (time: number) => void;
+  customScripts?: CustomIndicator[];
 }
 
-export default function CandleChart({ data, isLoading, mode, kdjData, onChartClick }: CandleChartProps) {
+export default function CandleChart({ data, isLoading, mode, kdjData, onChartClick, customScripts = [] }: CandleChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
@@ -23,6 +24,7 @@ export default function CandleChart({ data, isLoading, mode, kdjData, onChartCli
   const liquidityLinesRef = useRef<ISeriesApi<'Line'>[]>([]);
   const zigzagSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
   const trendBgSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
+  const customSeriesRef = useRef<Record<string, ISeriesApi<any>>>({});
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -159,6 +161,7 @@ export default function CandleChart({ data, isLoading, mode, kdjData, onChartCli
     return () => {
       resizeObserver.disconnect();
       if (chartRef.current) {
+        Object.values(customSeriesRef.current).forEach(s => chartRef.current?.removeSeries(s));
         chartRef.current.remove();
         chartRef.current = null;
       }
@@ -344,6 +347,51 @@ export default function CandleChart({ data, isLoading, mode, kdjData, onChartCli
         if (candleSeriesRef.current) {
           candleSeriesRef.current.setMarkers(markers);
         }
+
+        // Custom Scripts Logic
+        customScripts.forEach(script => {
+          if (!script.isActive || !chartRef.current) {
+            if (customSeriesRef.current[script.id]) {
+              chartRef.current?.removeSeries(customSeriesRef.current[script.id]);
+              delete customSeriesRef.current[script.id];
+            }
+            return;
+          }
+
+          try {
+            // Execute custom logic
+            // The logic string is expected to be a function body that returns LineData[] or similar
+            const runLogic = new Function('klines', script.logic);
+            const results = runLogic(data);
+
+            if (results && Array.isArray(results)) {
+              let series = customSeriesRef.current[script.id];
+              
+              if (!series) {
+                if (script.visualConfig.type === 'line') {
+                  series = chartRef.current.addLineSeries({
+                    color: script.visualConfig.colors[0] || '#fff',
+                    lineWidth: (script.visualConfig.lineWidth || 2) as any,
+                    title: script.name,
+                  });
+                } else if (script.visualConfig.type === 'histogram') {
+                  series = chartRef.current.addHistogramSeries({
+                    color: script.visualConfig.colors[0] || '#fff',
+                    title: script.name,
+                  });
+                }
+                
+                if (series) customSeriesRef.current[script.id] = series;
+              }
+
+              if (series) {
+                series.setData(results);
+              }
+            }
+          } catch (err) {
+            console.error(`Error executing script ${script.name}:`, err);
+          }
+        });
       }
     } 
     

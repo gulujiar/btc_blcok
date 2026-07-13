@@ -1,13 +1,14 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { RefreshCw, BarChart2, Activity, ExternalLink, Play, Pause, X, SkipForward, Rewind, FastForward, History } from 'lucide-react';
+import { RefreshCw, BarChart2, Activity, ExternalLink, Play, Pause, X, SkipForward, Rewind, FastForward, History, Terminal } from 'lucide-react';
 import { motion } from 'motion/react';
 import CandleChart from './components/CandleChart';
 import KDJBlockView from './components/KDJBlockView';
 import { PredictionPanel } from './components/PredictionPanel';
+import { ScriptIntegrator } from './components/ScriptIntegrator';
 import ErrorBoundary from './components/ErrorBoundary';
 import { fetchKlines, Timeframe } from './services/binance';
-import { Kline, calculateKDJ } from './lib/indicators';
+import { Kline, calculateKDJ, CustomIndicator } from './lib/indicators';
 
 export default function App() {
   const [data, setData] = useState<Kline[]>([]);
@@ -25,6 +26,29 @@ export default function App() {
   
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
   const pipContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Script Integrator State
+  const [customScripts, setCustomScripts] = useState<CustomIndicator[]>(() => {
+    const saved = localStorage.getItem('custom_scripts');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [isScriptHubOpen, setIsScriptHubOpen] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('custom_scripts', JSON.stringify(customScripts));
+  }, [customScripts]);
+
+  const handleAddScript = (script: CustomIndicator) => {
+    setCustomScripts(prev => [...prev, script]);
+  };
+
+  const handleToggleScript = (id: string) => {
+    setCustomScripts(prev => prev.map(s => s.id === id ? { ...s, isActive: !s.isActive } : s));
+  };
+
+  const handleRemoveScript = (id: string) => {
+    setCustomScripts(prev => prev.filter(s => s.id !== id));
+  };
 
   // Replay State
   const [replayMode, setReplayMode] = useState<{
@@ -364,6 +388,15 @@ export default function App() {
               <ExternalLink className="w-3.5 h-3.5" />
               <span className="text-[9px] font-bold hidden lg:inline">小窗</span>
             </button>
+
+            <button 
+              onClick={() => setIsScriptHubOpen(true)}
+              className="p-1.5 rounded-lg border border-[#333] hover:bg-emerald-500/10 hover:border-emerald-500/50 transition-all flex items-center gap-1.5 text-gray-500 hover:text-emerald-500"
+              title="脚本中心"
+            >
+              <Terminal className="w-3.5 h-3.5" />
+              <span className="text-[9px] font-bold hidden lg:inline">脚本</span>
+            </button>
           </div>
 
           <div className="flex bg-[#1a1a1a] p-1 rounded-xl border border-[#333] shadow-inner flex-shrink-0">
@@ -455,6 +488,7 @@ export default function App() {
                     mode={mode as any}
                     kdjData={kdjData}
                     onChartClick={handleChartClick}
+                    customScripts={customScripts}
                   />
                 </motion.div>
               </div>
@@ -519,6 +553,15 @@ export default function App() {
            <span className="hidden sm:inline">{new Date().toISOString().slice(0, 10)}</span>
         </div>
       </footer>
+
+      <ScriptIntegrator 
+        isOpen={isScriptHubOpen}
+        onClose={() => setIsScriptHubOpen(false)}
+        activeScripts={customScripts}
+        onAddScript={handleAddScript}
+        onToggleScript={handleToggleScript}
+        onRemoveScript={handleRemoveScript}
+      />
     </div>
   );
 }

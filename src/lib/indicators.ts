@@ -103,6 +103,19 @@ export interface LiquiditySwing {
   isCHoCH?: boolean;
 }
 
+export interface CustomIndicator {
+  id: string;
+  name: string;
+  description: string;
+  logic: string; // The function body
+  visualConfig: {
+    type: 'line' | 'marker' | 'histogram';
+    colors: string[];
+    lineWidth?: number;
+  };
+  isActive: boolean;
+}
+
 export function calculateLiquiditySwings(data: Kline[], length = 5) {
   const swings: LiquiditySwing[] = [];
   
